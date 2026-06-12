@@ -1,0 +1,14 @@
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+.coverage
+.DS_Store
+.venv/
+dist/
+build/
+*.egg-info/
+logs/*.csv
+logs/*.json
+logs/*.log
+!logs/.gitkeep
