@@ -30,3 +30,32 @@ Dry-run mode does not contact llama-server:
 ```bash
 python -m edge_llm_guardian.router --config config.example.json --dry-run
 ```
+
+## M0 Helpers
+
+`m0.example.json` intentionally contains placeholder model paths. Replace them
+only after the model choice is approved.
+
+Print the two `llama-server` commands without starting anything:
+
+```bash
+python -m edge_llm_guardian.m0 start --config m0.example.json --dry-run
+```
+
+After approved model paths are configured, start both servers:
+
+```bash
+python -m edge_llm_guardian.m0 start --config m0.example.json
+```
+
+Check both `/health` endpoints:
+
+```bash
+python -m edge_llm_guardian.m0 check --config m0.example.json
+```
+
+Record resident memory for the two saved PIDs:
+
+```bash
+python -m edge_llm_guardian.m0 rss --config m0.example.json
+```

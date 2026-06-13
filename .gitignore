@@ -11,4 +11,7 @@ build/
 logs/*.csv
 logs/*.json
 logs/*.log
+logs/*.llama-server.log
 !logs/.gitkeep
+run/*.pid
+!run/.gitkeep
