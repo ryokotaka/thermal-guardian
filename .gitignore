@@ -5,6 +5,7 @@ __pycache__/
 .coverage
 .DS_Store
 .venv/
+*.local.json
 dist/
 build/
 *.egg-info/
@@ -15,3 +16,4 @@ logs/*.llama-server.log
 !logs/.gitkeep
 run/*.pid
 !run/.gitkeep
+data/

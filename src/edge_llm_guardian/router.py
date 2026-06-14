@@ -10,7 +10,7 @@ import argparse
 import json
 import threading
 import time
-from typing import Any
+from typing import Any, Mapping
 from urllib.parse import urljoin
 
 import requests
@@ -22,6 +22,7 @@ from edge_llm_guardian.monitor import VcgencmdMonitor
 
 
 CHAT_COMPLETIONS_PATH = "/v1/chat/completions"
+PROMPT_ID_HEADER = "X-Edge-Prompt-Id"
 
 
 @dataclass(frozen=True)
@@ -58,9 +59,14 @@ class RouterRuntime:
         self._last_decision: Any | None = None
         self._last_sample_monotonic: float | None = None
 
-    def handle_chat_completion(self, body: bytes) -> RouterResponse:
+    def handle_chat_completion(
+        self,
+        body: bytes,
+        *,
+        headers: Mapping[str, str] | None = None,
+    ) -> RouterResponse:
         request_json = _parse_json_body(body)
-        prompt_id = _extract_prompt_id(request_json)
+        prompt_id = _extract_prompt_id(request_json, headers=headers)
         decision = self.current_decision()
 
         start = time.perf_counter()
@@ -164,7 +170,7 @@ class RoutingHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("content-length", "0"))
         body = self.rfile.read(length)
         try:
-            response = self.runtime.handle_chat_completion(body)
+            response = self.runtime.handle_chat_completion(body, headers=self.headers)
         except ValueError as exc:
             self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
             return
@@ -232,7 +238,15 @@ def _parse_json_body(body: bytes) -> dict[str, Any]:
     return data
 
 
-def _extract_prompt_id(data: dict[str, Any]) -> str:
+def _extract_prompt_id(
+    data: dict[str, Any],
+    *,
+    headers: Mapping[str, str] | None = None,
+) -> str:
+    if headers is not None:
+        header_value = headers.get(PROMPT_ID_HEADER)
+        if isinstance(header_value, str) and header_value.strip():
+            return header_value.strip()
     direct = data.get("prompt_id")
     if isinstance(direct, str) and direct:
         return direct

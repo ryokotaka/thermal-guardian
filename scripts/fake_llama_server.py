@@ -16,6 +16,18 @@ class FakeLlamaHandler(BaseHTTPRequestHandler):
     delay_ms = 0.0
     tokens_out = 8
 
+    def do_GET(self) -> None:
+        if self.path != "/health":
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        payload = {"status": "ok", "model": self.backend_name}
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_POST(self) -> None:
         if self.path != "/v1/chat/completions":
             self.send_error(HTTPStatus.NOT_FOUND)

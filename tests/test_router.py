@@ -5,6 +5,7 @@ from edge_llm_guardian.controller import ControllerConfig, RouteTarget, ThermalC
 from edge_llm_guardian.logger import CsvLogger
 from edge_llm_guardian.monitor import FakeMonitor, MonitorSnapshot
 from edge_llm_guardian.router import (
+    PROMPT_ID_HEADER,
     RouterRuntime,
     _backend_url,
     _extract_prompt_id,
@@ -13,6 +14,7 @@ from edge_llm_guardian.router import (
 
 
 def test_prompt_id_can_come_from_metadata() -> None:
+    assert _extract_prompt_id({}, headers={PROMPT_ID_HEADER: "header-p001"}) == "header-p001"
     assert _extract_prompt_id({"metadata": {"prompt_id": "abc"}}) == "abc"
     assert _extract_prompt_id({}) == "unknown"
 
@@ -104,3 +106,53 @@ def test_runtime_forwards_to_selected_backend_and_logs_tokens(tmp_path) -> None:
     assert session.calls[0]["data"] == body
     assert "p-forward" in (tmp_path / "requests.csv").read_text(encoding="utf-8")
     assert ",9," in (tmp_path / "requests.csv").read_text(encoding="utf-8")
+
+
+def test_runtime_logs_prompt_id_header_without_mutating_body(tmp_path) -> None:
+    class FakeResponse:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+        content = json.dumps({"usage": {"completion_tokens": 3}}).encode("utf-8")
+
+        def json(self):
+            return {"usage": {"completion_tokens": 3}}
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def post(self, url, data, headers, timeout):
+            self.calls.append(
+                {
+                    "url": url,
+                    "data": data,
+                    "headers": headers,
+                    "timeout": timeout,
+                }
+            )
+            return FakeResponse()
+
+    session = FakeSession()
+    config = RouterConfig(
+        q8_url="http://127.0.0.1:8081",
+        q4_url="http://127.0.0.1:8082",
+        log_dir=str(tmp_path),
+        min_switch_interval_sec=0.0,
+    )
+    runtime = RouterRuntime(
+        config,
+        monitor=FakeMonitor([MonitorSnapshot(1.0, 40.0, 1_500_000_000, "0x0")]),
+        logger=CsvLogger(tmp_path),
+        session=session,
+    )
+    body = json.dumps({"model": "edge-llm-guardian", "messages": []}).encode("utf-8")
+
+    response = runtime.handle_chat_completion(
+        body,
+        headers={PROMPT_ID_HEADER: "header-p-forward"},
+    )
+
+    assert response.status_code == 200
+    assert session.calls[0]["data"] == body
+    assert "prompt_id" not in json.loads(session.calls[0]["data"].decode("utf-8"))
+    assert "header-p-forward" in (tmp_path / "requests.csv").read_text(encoding="utf-8")

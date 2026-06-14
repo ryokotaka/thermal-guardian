@@ -21,6 +21,8 @@ dev = [
 [project.scripts]
 edge-llm-router = "edge_llm_guardian.router:main"
 edge-llm-m0 = "edge_llm_guardian.m0:main"
+edge-llm-m1 = "edge_llm_guardian.m1:main"
+edge-llm-m2 = "edge_llm_guardian.m2:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

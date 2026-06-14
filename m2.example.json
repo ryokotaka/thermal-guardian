@@ -1,0 +1,19 @@
+{
+  "q8_url": "http://127.0.0.1:8081",
+  "q4_url": "http://127.0.0.1:8082",
+  "router_url": "http://127.0.0.1:8080",
+  "output_root": "data/m2",
+  "duration_sec": 600.0,
+  "request_count": null,
+  "interval_sec": 0.0,
+  "timeout_sec": 120.0,
+  "prompt": "Reply with one short sentence about edge inference.",
+  "max_tokens": 64,
+  "model": "edge-llm-guardian",
+  "sampling_interval_sec": 2.0,
+  "safety_temp_c": 82.0,
+  "cooling": "fan_on",
+  "prompt_id_prefix": "m2-lite",
+  "power_meter_model": "",
+  "room_temp_c": null
+}
