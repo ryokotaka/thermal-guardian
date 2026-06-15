@@ -47,8 +47,41 @@ TELEMETRY_FIELDS = [
     "clock_hz",
     "throttled_hex",
 ]
+MANUAL_POWER_FIELDS = [
+    "run_dir",
+    "condition",
+    "run_id",
+    "mwh",
+    "elapsed_time",
+    "voltage_v",
+    "current_a",
+    "power_w",
+    "max_voltage_v",
+    "max_current_a",
+    "max_power_w",
+    "meter_cpu_c",
+    "photo_path",
+    "note",
+]
+POWER_SUMMARY_FIELDS = [
+    "condition",
+    "run_dir",
+    "requests",
+    "tokens_out_total",
+    "median_latency_ms",
+    "iqr_latency_ms",
+    "median_tokens_per_sec",
+    "iqr_tokens_per_sec",
+    "max_temp_c",
+    "throttle_seen",
+    "safety_stop",
+    "mwh",
+    "j_per_token",
+    "note",
+]
 DEFAULT_SUMMARY_OUTPUT = "logs/m2_summary.json"
 DEFAULT_PLOT_OUTPUT = "logs/m2_main_graph.svg"
+DEFAULT_POWER_SUMMARY_OUTPUT = "logs/power_summary.csv"
 
 
 @dataclass(frozen=True)
@@ -400,6 +433,71 @@ def summarize_runs(input_dirs: list[str | Path], *, output: str | Path) -> dict[
     return summary
 
 
+def build_power_summary(
+    input_dirs: list[str | Path],
+    *,
+    manual_power: str | Path,
+    output: str | Path = DEFAULT_POWER_SUMMARY_OUTPUT,
+) -> list[dict[str, str]]:
+    manual_rows = _read_manual_power_rows(Path(manual_power))
+    output_rows: list[dict[str, str]] = []
+
+    for input_dir in input_dirs:
+        run_dir = Path(input_dir)
+        key = _power_row_key(run_dir)
+        manual = manual_rows.get(key)
+        if manual is None:
+            raise ValueError(f"missing manual power row for run_dir: {run_dir}")
+
+        run_summary = _summarize_one_run(run_dir)
+        condition = str(run_summary.get("mode") or "")
+        manual_condition = manual.get("condition", "")
+        if manual_condition and condition and manual_condition != condition:
+            raise ValueError(
+                f"manual condition {manual_condition!r} does not match run mode {condition!r} "
+                f"for run_dir: {run_dir}"
+            )
+
+        mwh = _parse_required_float(manual.get("mwh", ""), field="mwh", run_dir=run_dir)
+        tokens_out_total = int(run_summary.get("tokens_total") or 0)
+        j_per_token = None
+        if tokens_out_total > 0:
+            j_per_token = (mwh * 3.6) / tokens_out_total
+
+        output_rows.append(
+            {
+                "condition": condition or manual_condition,
+                "run_dir": str(run_dir),
+                "requests": str(run_summary.get("request_count") or 0),
+                "tokens_out_total": str(tokens_out_total),
+                "median_latency_ms": _format_optional_float(
+                    run_summary.get("median_latency_ms"), digits=3
+                ),
+                "iqr_latency_ms": _format_optional_float(
+                    run_summary.get("iqr_latency_ms"), digits=3
+                ),
+                "median_tokens_per_sec": _format_optional_float(
+                    run_summary.get("median_tokens_per_sec"), digits=6
+                ),
+                "iqr_tokens_per_sec": _format_optional_float(
+                    run_summary.get("iqr_tokens_per_sec"), digits=6
+                ),
+                "max_temp_c": _format_optional_float(run_summary.get("max_temp_c"), digits=3),
+                "throttle_seen": str(bool(run_summary.get("throttle_seen"))).lower(),
+                "safety_stop": str(bool(run_summary.get("safety_stop"))).lower(),
+                "mwh": _format_required_float(mwh),
+                "j_per_token": _format_optional_float(j_per_token, digits=6),
+                "note": manual.get("note", ""),
+            }
+        )
+
+    _write_csv_rows(output, POWER_SUMMARY_FIELDS, output_rows)
+    print(
+        f"m2 power-summary: runs={len(output_rows)} manual_power={manual_power} output={output}"
+    )
+    return output_rows
+
+
 def plot_run(*, input_dir: str | Path, output: str | Path = DEFAULT_PLOT_OUTPUT) -> Path:
     run_dir = Path(input_dir)
     requests = _read_request_rows(run_dir / "requests.csv")
@@ -706,6 +804,27 @@ def _read_telemetry_rows(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _read_manual_power_rows(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        raise ValueError(f"manual power file not found: {path}")
+    with path.open("r", encoding="utf-8", newline="") as fp:
+        reader = csv.DictReader(fp)
+        fieldnames = reader.fieldnames or []
+        missing = [field for field in MANUAL_POWER_FIELDS if field not in fieldnames]
+        if missing:
+            raise ValueError(f"manual power file missing columns: {', '.join(missing)}")
+        rows: dict[str, dict[str, str]] = {}
+        for raw in reader:
+            run_dir = raw.get("run_dir", "")
+            if not run_dir:
+                raise ValueError("manual power row has empty run_dir")
+            key = _power_row_key(Path(run_dir))
+            if key in rows:
+                raise ValueError(f"duplicate manual power row for run_dir: {run_dir}")
+            rows[key] = {field: raw.get(field, "") for field in MANUAL_POWER_FIELDS}
+    return rows
+
+
 def _read_json_or_empty(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -726,6 +845,15 @@ def _append_csv_rows(
         writer = csv.DictWriter(fp, fieldnames=fields)
         if write_header:
             writer.writeheader()
+        writer.writerows(rows)
+
+
+def _write_csv_rows(path: str | Path, fields: list[str], rows: list[dict[str, str]]) -> None:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8", newline="") as fp:
+        writer = csv.DictWriter(fp, fieldnames=fields)
+        writer.writeheader()
         writer.writerows(rows)
 
 
@@ -757,6 +885,30 @@ def _tokens_per_sec(tokens_out: int, latency_ms: float) -> float:
     if tokens_out <= 0 or latency_ms <= 0:
         return 0.0
     return tokens_out / (latency_ms / 1000.0)
+
+
+def _parse_required_float(value: str, *, field: str, run_dir: Path) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field} must be numeric for run_dir: {run_dir}") from None
+    if number < 0:
+        raise ValueError(f"{field} must be non-negative for run_dir: {run_dir}")
+    return number
+
+
+def _format_required_float(value: float) -> str:
+    return f"{value:g}"
+
+
+def _format_optional_float(value: Any, *, digits: int) -> str:
+    if value is None:
+        return ""
+    return f"{float(value):.{digits}f}"
+
+
+def _power_row_key(path: Path) -> str:
+    return str(path.expanduser().resolve())
 
 
 def _chat_url(base_url: str) -> str:
@@ -891,6 +1043,14 @@ def main(argv: list[str] | None = None) -> None:
     plot_parser.add_argument("--input", required=True)
     plot_parser.add_argument("--output", default=DEFAULT_PLOT_OUTPUT)
 
+    power_parser = subparsers.add_parser(
+        "power-summary",
+        help="Join M2 run summaries with manual USB power-meter readings.",
+    )
+    power_parser.add_argument("--input", action="append", required=True)
+    power_parser.add_argument("--manual-power", required=True)
+    power_parser.add_argument("--output", default=DEFAULT_POWER_SUMMARY_OUTPUT)
+
     args = parser.parse_args(argv)
 
     if args.command == "run":
@@ -911,6 +1071,17 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.command == "plot":
         plot_run(input_dir=args.input, output=args.output)
+        return
+
+    if args.command == "power-summary":
+        try:
+            build_power_summary(
+                args.input,
+                manual_power=args.manual_power,
+                output=args.output,
+            )
+        except ValueError as exc:
+            raise SystemExit(f"power-summary: {exc}") from exc
         return
 
     raise SystemExit(f"unknown command: {args.command}")

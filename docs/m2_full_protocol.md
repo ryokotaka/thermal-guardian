@@ -45,6 +45,17 @@ Reason:
 Keep `q8_fixed` and `q4_fixed` direct-to-server, so their results are not
 affected by router controller logic.
 
+For every controller run, set the router `log_dir` to that run's directory:
+
+```text
+data/m2/YYYY-MM-DD/fan_on_full/controller_001/router_logs
+data/m2/YYYY-MM-DD/fan_on_full/controller_002/router_logs
+...
+```
+
+This keeps router `events.csv` and router-side `requests.csv` from different
+controller runs separated.
+
 ## Run Naming
 
 Use deterministic run directories:
@@ -74,6 +85,58 @@ round 5: q4_fixed -> q8_fixed -> controller
 Before every run, wait until Pi CPU temperature is below 45 C or record the
 starting temperature explicitly if waiting is impractical.
 
+## Run Commands
+
+For fixed Q8 and Q4 runs, call the M2 helper directly:
+
+```bash
+python -m edge_llm_guardian.m2 run \
+  --config m2.local.json \
+  --mode q8_fixed \
+  --output-dir data/m2/YYYY-MM-DD/fan_on_full/q8_fixed_001 \
+  --duration-sec 1800 \
+  --cooling fan_on \
+  --prompt-id-prefix m2-full
+
+python -m edge_llm_guardian.m2 run \
+  --config m2.local.json \
+  --mode q4_fixed \
+  --output-dir data/m2/YYYY-MM-DD/fan_on_full/q4_fixed_001 \
+  --duration-sec 1800 \
+  --cooling fan_on \
+  --prompt-id-prefix m2-full
+```
+
+For controller runs:
+
+1. Edit ignored `config.m2.fan_on.local.json` so `log_dir` points at the current
+   run's `router_logs` directory.
+2. Start the router with that config.
+3. Run M2 against the router.
+
+```bash
+python -m edge_llm_guardian.router --config config.m2.fan_on.local.json
+
+python -m edge_llm_guardian.m2 run \
+  --config m2.local.json \
+  --mode controller \
+  --output-dir data/m2/YYYY-MM-DD/fan_on_full/controller_001 \
+  --duration-sec 1800 \
+  --cooling fan_on \
+  --prompt-id-prefix m2-full
+```
+
+After each controller run, keep these files inside that run directory:
+
+```text
+controller_001/
+  requests.csv
+  telemetry.csv
+  manifest.json
+  router_logs/events.csv
+  router_logs/requests.csv
+```
+
 ## USB Power Meter Procedure
 
 For each run:
@@ -87,11 +150,31 @@ For each run:
    temperature into `manual_power_readings.csv`.
 7. Generate or update `power_summary.csv` after all runs.
 
+Use these exact manual CSV columns:
+
+```text
+run_dir,condition,run_id,mwh,elapsed_time,voltage_v,current_a,power_w,max_voltage_v,max_current_a,max_power_w,meter_cpu_c,photo_path,note
+```
+
 Use this formula only after joining the USB meter value with token counts:
 
 ```text
 J/token = mWh * 3.6 / tokens_out_total
 ```
+
+Generate the joined power summary after all selected runs:
+
+```bash
+python -m edge_llm_guardian.m2 power-summary \
+  --manual-power data/m2/YYYY-MM-DD/fan_on_full/manual_power_readings.csv \
+  --input data/m2/YYYY-MM-DD/fan_on_full/q8_fixed_001 \
+  --input data/m2/YYYY-MM-DD/fan_on_full/q4_fixed_001 \
+  --input data/m2/YYYY-MM-DD/fan_on_full/controller_001 \
+  --output data/m2/YYYY-MM-DD/fan_on_full/power_summary.csv
+```
+
+If a selected run has no manual power row, `power-summary` must fail. Add the
+missing manual reading rather than guessing.
 
 ## Safety And Failure Rules
 
@@ -115,6 +198,8 @@ The fan-on full M2 package is complete when:
 - `m2_summary.json` exists for all selected run directories.
 - `power_summary.csv` joins tokens, latency, temperature, throttle, mWh, and
   J/token reference values.
+- Controller run `events.csv` files are separated under each run's
+  `router_logs/` directory.
 - The report states median and IQR, and clearly separates measured facts from
   interpretation.
 

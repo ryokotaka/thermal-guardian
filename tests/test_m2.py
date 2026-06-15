@@ -6,6 +6,7 @@ import requests
 
 from edge_llm_guardian.m2 import (
     M2Config,
+    build_power_summary,
     build_chat_payload,
     load_m2_config,
     main,
@@ -309,3 +310,123 @@ def test_plot_run_writes_svg_with_three_panels(tmp_path) -> None:
     assert "Temperature C" in text
     assert "ARM clock GHz" in text
     assert "Tokens per sec" in text
+
+
+def test_power_summary_joins_manual_power_and_computes_j_per_token(tmp_path) -> None:
+    run_dir = tmp_path / "q4_fixed_001"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"mode": "q4_fixed", "cooling": "fan_on", "safety_stop": False}),
+        encoding="utf-8",
+    )
+    (run_dir / "requests.csv").write_text(
+        "ts,prompt_id,mode,cooling,ok,status_code,latency_ms,tokens_out,tokens_per_sec,model,url,detail\n"
+        "1.0,p1,q4_fixed,fan_on,true,200,1000.0,10,10.0,m,http://q4,{}\n"
+        "2.0,p2,q4_fixed,fan_on,true,200,2000.0,20,10.0,m,http://q4,{}\n",
+        encoding="utf-8",
+    )
+    (run_dir / "telemetry.csv").write_text(
+        "ts,elapsed_sec,mode,cooling,temp_c,clock_hz,throttled_hex\n"
+        "1.0,0.0,q4_fixed,fan_on,55.0,1500000000,0x0\n",
+        encoding="utf-8",
+    )
+    manual = tmp_path / "manual_power_readings.csv"
+    manual.write_text(
+        "run_dir,condition,run_id,mwh,elapsed_time,voltage_v,current_a,power_w,max_voltage_v,max_current_a,max_power_w,meter_cpu_c,photo_path,note\n"
+        f"{run_dir},q4_fixed,q4_fixed_001,15,00:30:00,5.1,0.5,2.5,5.2,1.0,5.2,36,photos/q4.jpg,good run\n",
+        encoding="utf-8",
+    )
+
+    rows = build_power_summary([run_dir], manual_power=manual, output=tmp_path / "power.csv")
+
+    assert rows == [
+        {
+            "condition": "q4_fixed",
+            "run_dir": str(run_dir),
+            "requests": "2",
+            "tokens_out_total": "30",
+            "median_latency_ms": "1500.000",
+            "iqr_latency_ms": "1000.000",
+            "median_tokens_per_sec": "10.000000",
+            "iqr_tokens_per_sec": "0.000000",
+            "max_temp_c": "55.000",
+            "throttle_seen": "false",
+            "safety_stop": "false",
+            "mwh": "15",
+            "j_per_token": "1.800000",
+            "note": "good run",
+        }
+    ]
+    with (tmp_path / "power.csv").open(encoding="utf-8", newline="") as fp:
+        saved = list(csv.DictReader(fp))
+    assert saved[0]["j_per_token"] == "1.800000"
+
+
+def test_power_summary_leaves_j_per_token_blank_when_tokens_are_zero(tmp_path) -> None:
+    run_dir = tmp_path / "controller_001"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"mode": "controller", "cooling": "fan_on", "safety_stop": False}),
+        encoding="utf-8",
+    )
+    (run_dir / "requests.csv").write_text(
+        "ts,prompt_id,mode,cooling,ok,status_code,latency_ms,tokens_out,tokens_per_sec,model,url,detail\n"
+        "1.0,p1,controller,fan_on,true,200,1000.0,0,0.0,m,http://r,{}\n",
+        encoding="utf-8",
+    )
+    (run_dir / "telemetry.csv").write_text(
+        "ts,elapsed_sec,mode,cooling,temp_c,clock_hz,throttled_hex\n"
+        "1.0,0.0,controller,fan_on,55.0,1500000000,0x0\n",
+        encoding="utf-8",
+    )
+    manual = tmp_path / "manual_power_readings.csv"
+    manual.write_text(
+        "run_dir,condition,run_id,mwh,elapsed_time,voltage_v,current_a,power_w,max_voltage_v,max_current_a,max_power_w,meter_cpu_c,photo_path,note\n"
+        f"{run_dir},controller,controller_001,12,00:30:00,5.1,0.5,2.5,5.2,1.0,5.2,36,photos/controller.jpg,zero token test\n",
+        encoding="utf-8",
+    )
+
+    rows = build_power_summary([run_dir], manual_power=manual, output=tmp_path / "power.csv")
+
+    assert rows[0]["tokens_out_total"] == "0"
+    assert rows[0]["j_per_token"] == ""
+
+
+def test_power_summary_requires_manual_row_and_cli_exits_nonzero(tmp_path) -> None:
+    run_dir = tmp_path / "q8_fixed_001"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"mode": "q8_fixed", "cooling": "fan_on", "safety_stop": False}),
+        encoding="utf-8",
+    )
+    (run_dir / "requests.csv").write_text(
+        "ts,prompt_id,mode,cooling,ok,status_code,latency_ms,tokens_out,tokens_per_sec,model,url,detail\n",
+        encoding="utf-8",
+    )
+    (run_dir / "telemetry.csv").write_text(
+        "ts,elapsed_sec,mode,cooling,temp_c,clock_hz,throttled_hex\n",
+        encoding="utf-8",
+    )
+    manual = tmp_path / "manual_power_readings.csv"
+    manual.write_text(
+        "run_dir,condition,run_id,mwh,elapsed_time,voltage_v,current_a,power_w,max_voltage_v,max_current_a,max_power_w,meter_cpu_c,photo_path,note\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="missing manual power row"):
+        build_power_summary([run_dir], manual_power=manual, output=tmp_path / "power.csv")
+
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "power-summary",
+                "--input",
+                str(run_dir),
+                "--manual-power",
+                str(manual),
+                "--output",
+                str(tmp_path / "power.csv"),
+            ]
+        )
+
+    assert exc.value.code != 0

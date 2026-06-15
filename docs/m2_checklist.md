@@ -100,3 +100,23 @@ energy-efficiency improvement, J/token improvement, or long-run stability.
 Full M2 should follow `docs/m2_full_protocol.md`: 1800-second fan-on runs, N=5
 per condition, median+IQR reporting, manual USB power-meter readings, and a
 tuned fan-on controller threshold for the controller condition.
+
+Before starting full M2, confirm the Phase A helpers are ready:
+
+```bash
+python -m edge_llm_guardian.m2 power-summary --help
+git check-ignore m2.local.json config.m2.fan_on.local.json
+```
+
+Use this manual power CSV header for the full run:
+
+```text
+run_dir,condition,run_id,mwh,elapsed_time,voltage_v,current_a,power_w,max_voltage_v,max_current_a,max_power_w,meter_cpu_c,photo_path,note
+```
+
+For controller runs, change the ignored router config `log_dir` before each run
+so `events.csv` lands under the current run directory, for example:
+
+```text
+data/m2/YYYY-MM-DD/fan_on_full/controller_001/router_logs
+```

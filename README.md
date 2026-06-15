@@ -140,6 +140,17 @@ python -m edge_llm_guardian.m2 plot \
   --output data/m2/YYYY-MM-DD/controller_main_graph.svg
 ```
 
+Join manual USB power-meter readings with run summaries:
+
+```bash
+python -m edge_llm_guardian.m2 power-summary \
+  --manual-power data/m2/YYYY-MM-DD/manual_power_readings.csv \
+  --input data/m2/YYYY-MM-DD/q8_fixed_fan_on_001 \
+  --input data/m2/YYYY-MM-DD/q4_fixed_fan_on_001 \
+  --input data/m2/YYYY-MM-DD/controller_fan_on_001 \
+  --output data/m2/YYYY-MM-DD/power_summary.csv
+```
+
 The 2026-06-14 fan-on M2-lite smoke evidence is summarized in
 `docs/m2_lite_completion.md`. The full M2 protocol is fixed in
 `docs/m2_full_protocol.md`; `config.m2.fan_on.example.json` records the tuned
