@@ -171,6 +171,29 @@ def test_run_m2_records_request_failure_and_cli_exits_nonzero(monkeypatch, tmp_p
     assert exc.value.code == 1
 
 
+def test_run_m2_aborts_after_consecutive_request_failures(tmp_path) -> None:
+    class FailingSession:
+        def post(self, url, json, headers, timeout):
+            raise requests.ConnectionError("connection refused")
+
+    result = run_m2(
+        config=M2Config(duration_sec=60.0, max_consecutive_failures=3),
+        mode="controller",
+        output_dir=tmp_path,
+        session=FailingSession(),
+        monitor=FakeMonitor([MonitorSnapshot(1.0, 40.0, 1_500_000_000, "0x0")]),
+        background_telemetry=False,
+        now_func=lambda: 1.0,
+        monotonic_func=lambda: 1.0,
+    )
+
+    assert result.ok is False
+    assert len(result.request_rows) == 3
+    assert all(not row.ok for row in result.request_rows)
+    assert result.manifest["safety_stop"] is True
+    assert "consecutive request failures 3" in result.manifest["safety_reason"]
+
+
 def test_run_m2_records_telemetry_safety_stop_before_requests(tmp_path) -> None:
     result = run_m2(
         config=M2Config(request_count=1, safety_temp_c=70.0),

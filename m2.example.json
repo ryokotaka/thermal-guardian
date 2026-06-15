@@ -7,6 +7,7 @@
   "request_count": null,
   "interval_sec": 0.0,
   "timeout_sec": 120.0,
+  "max_consecutive_failures": 3,
   "prompt": "Reply with one short sentence about edge inference.",
   "max_tokens": 64,
   "model": "edge-llm-guardian",

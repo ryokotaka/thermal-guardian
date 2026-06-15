@@ -181,6 +181,8 @@ missing manual reading rather than guessing.
 - Safety temperature: 82 C.
 - Abort a run if `get_throttled` changes from `0x0`, if the USB meter voltage
   drops below about 4.9 V under load, or if the Pi becomes unreachable.
+- Abort a run after 3 consecutive request failures. This prevents a missing
+  router or dead backend from producing tens of thousands of failed requests.
 - Keep aborted runs in the evidence directory with `safety_stop=true` or a
   separate abort note. Do not silently delete them.
 - Fan-off full M2 is not part of the first full series. The previous no-fan run

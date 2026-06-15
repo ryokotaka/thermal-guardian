@@ -57,6 +57,8 @@ Each run directory should contain:
   timeline
 - `manifest.json`: commit hash, OS/kernel, governor, config, cooling label, and
   safety-stop status
+- A run should stop after 3 consecutive request failures. If that happens,
+  fix the router/backend problem and do not count that run toward N=5.
 
 ## Summary and Graph
 
