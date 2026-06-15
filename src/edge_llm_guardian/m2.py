@@ -94,6 +94,7 @@ class M2Config:
     request_count: int | None = None
     interval_sec: float = 0.0
     timeout_sec: float = 120.0
+    max_consecutive_failures: int = 3
     prompt: str = "Reply with one short sentence about edge inference."
     max_tokens: int = 64
     model: str = "edge-llm-guardian"
@@ -113,6 +114,8 @@ class M2Config:
             raise ValueError("interval_sec must be non-negative")
         if self.timeout_sec <= 0:
             raise ValueError("timeout_sec must be positive")
+        if self.max_consecutive_failures <= 0:
+            raise ValueError("max_consecutive_failures must be positive")
         if self.max_tokens <= 0:
             raise ValueError("max_tokens must be positive")
         if self.sampling_interval_sec <= 0:
@@ -299,6 +302,7 @@ def run_m2(
 
     deadline = monotonic_func() + config.duration_sec
     sent = 0
+    consecutive_failures = 0
     try:
         while config.request_count is None or sent < config.request_count:
             if stop_event.is_set():
@@ -323,6 +327,17 @@ def run_m2(
                 f"{prompt_id}: mode={mode} ok={row.ok} status={row.status_code or 'error'} "
                 f"latency_ms={row.latency_ms:.3f} tokens_out={row.tokens_out}"
             )
+            if row.ok:
+                consecutive_failures = 0
+            else:
+                consecutive_failures += 1
+                if consecutive_failures >= config.max_consecutive_failures and not safety_reason:
+                    safety_reason.append(
+                        "consecutive request failures "
+                        f"{consecutive_failures} >= max_consecutive_failures "
+                        f"{config.max_consecutive_failures}"
+                    )
+                    stop_event.set()
 
             if not background_telemetry:
                 _sample_and_store_telemetry(
@@ -992,6 +1007,7 @@ def _with_cli_overrides(config: M2Config, args: argparse.Namespace) -> M2Config:
         "request_count",
         "interval_sec",
         "timeout_sec",
+        "max_consecutive_failures",
         "prompt",
         "max_tokens",
         "model",
