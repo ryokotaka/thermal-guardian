@@ -1,71 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" role="img" aria-labelledby="title desc">
-  <title id="title">M2 fan-on N=5 summary</title>
-  <desc id="desc">Median token per second and joules per token for fixed Q8, fixed Q4, and controller runs on Raspberry Pi 5.</desc>
-  <rect width="980" height="520" fill="#f8faf9"/>
-  <text x="48" y="54" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#17211f">M2 fan-on N=5: fixed Q4 is the baseline to beat</text>
-  <text x="48" y="84" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#465451">Controller improved over fixed Q8, switched in 5/5 runs, and completed without throttling or safety stops.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="548" viewBox="0 0 960 548" role="img" aria-labelledby="title desc">
+  <title id="title">Raspberry Pi 5 fan-on N=5 results: speed and energy by routing mode</title>
+  <desc id="desc">Median tokens per second (higher is better) and joules per token (lower is better) for fixed Q8, fixed Q4, and the thermal controller across five 30-minute runs each on a Raspberry Pi 5. The controller improved on Q8 by 72% on speed and 32% on energy, and nearly matched fixed Q4 speed; fixed Q4 was the best baseline.</desc>
 
-  <g transform="translate(48 122)">
-    <rect x="0" y="0" width="426" height="318" rx="10" fill="#ffffff" stroke="#d7dfdc"/>
-    <text x="24" y="36" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#17211f">Median throughput</text>
-    <text x="24" y="60" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#64716e">Higher is better, token/s</text>
+  <rect width="960" height="548" fill="#f6f8f8"/>
 
-    <line x1="116" y1="244" x2="382" y2="244" stroke="#d7dfdc"/>
-    <line x1="116" y1="189" x2="382" y2="189" stroke="#eef2f0"/>
-    <line x1="116" y1="134" x2="382" y2="134" stroke="#eef2f0"/>
-    <line x1="116" y1="79" x2="382" y2="79" stroke="#eef2f0"/>
-    <text x="68" y="249" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0</text>
-    <text x="62" y="194" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">4</text>
-    <text x="62" y="139" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">8</text>
-    <text x="56" y="84" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">12</text>
+  <!-- Header -->
+  <text x="40" y="44" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#16241f">How the three routing modes compared on a Raspberry Pi 5</text>
+  <text x="40" y="72" font-family="Arial, Helvetica, sans-serif" font-size="14.5" fill="#56635f">Medians across N=5 runs of 30 minutes each. Fan on. Identical chat workload.</text>
 
-    <rect x="128" y="154" width="58" height="90" rx="5" fill="#607d8b"/>
-    <rect x="204" y="89" width="58" height="155" rx="5" fill="#2f9e7e"/>
-    <rect x="280" y="90" width="58" height="154" rx="5" fill="#d9822b"/>
+  <!-- Takeaway band -->
+  <rect x="40" y="86" width="880" height="46" rx="9" fill="#eef3fb" stroke="#d6e0f5"/>
+  <text x="60" y="115" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#28406e"><tspan font-weight="700">Takeaway:</tspan> the controller beat heavy Q8 (+72% speed, &#8722;32% energy) and nearly matched fixed Q4 speed; Q4 was the best baseline.</text>
 
-    <text x="139" y="144" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">6.53</text>
-    <text x="214" y="79" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">11.27</text>
-    <text x="289" y="80" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">11.23</text>
+  <!-- Card A: throughput -->
+  <g transform="translate(40 150)">
+    <rect x="0" y="0" width="420" height="300" rx="14" fill="#ffffff" stroke="#e3e9e7"/>
+    <text x="24" y="40" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#16241f">Speed</text>
+    <text x="24" y="62" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#66736f">Higher is better &#183; tokens per second</text>
 
-    <text x="126" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q8 fixed</text>
-    <text x="202" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q4 fixed</text>
-    <text x="268" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">controller</text>
+    <!-- gridlines -->
+    <line x1="66" y1="250" x2="394" y2="250" stroke="#cfd8d5"/>
+    <line x1="66" y1="197.33" x2="394" y2="197.33" stroke="#eef2f0"/>
+    <line x1="66" y1="144.67" x2="394" y2="144.67" stroke="#eef2f0"/>
+    <line x1="66" y1="92" x2="394" y2="92" stroke="#eef2f0"/>
+    <text x="58" y="254" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">0</text>
+    <text x="58" y="201" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">4</text>
+    <text x="58" y="148.5" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">8</text>
+    <text x="58" y="96" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">12</text>
+
+    <!-- bars -->
+    <rect x="80" y="164.0" width="70" height="86.0" rx="5" fill="#9aa6b2"/>
+    <rect x="190" y="101.6" width="70" height="148.4" rx="5" fill="#1f9d76"/>
+    <rect x="300" y="102.1" width="70" height="147.9" rx="5" fill="#3f72d4"/>
+
+    <text x="115" y="152" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#16241f">6.53</text>
+    <text x="225" y="90" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#16241f">11.27</text>
+    <text x="335" y="90" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#16241f">11.23</text>
+
+    <text x="115" y="274" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#5b6770">Q8 fixed</text>
+    <text x="225" y="274" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#15795b">Q4 fixed</text>
+    <text x="335" y="274" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#2f56a8">controller</text>
   </g>
 
-  <g transform="translate(506 122)">
-    <rect x="0" y="0" width="426" height="318" rx="10" fill="#ffffff" stroke="#d7dfdc"/>
-    <text x="24" y="36" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#17211f">Median energy per token</text>
-    <text x="24" y="60" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#64716e">Lower is better, J/token</text>
+  <!-- Card B: energy -->
+  <g transform="translate(500 150)">
+    <rect x="0" y="0" width="420" height="300" rx="14" fill="#ffffff" stroke="#e3e9e7"/>
+    <text x="24" y="40" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#16241f">Energy</text>
+    <text x="24" y="62" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#66736f">Lower is better &#183; joules per token</text>
 
-    <line x1="116" y1="244" x2="382" y2="244" stroke="#d7dfdc"/>
-    <line x1="116" y1="189" x2="382" y2="189" stroke="#eef2f0"/>
-    <line x1="116" y1="134" x2="382" y2="134" stroke="#eef2f0"/>
-    <line x1="116" y1="79" x2="382" y2="79" stroke="#eef2f0"/>
-    <text x="68" y="249" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0.0</text>
-    <text x="68" y="194" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0.4</text>
-    <text x="68" y="139" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0.8</text>
-    <text x="68" y="84" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">1.2</text>
+    <line x1="66" y1="250" x2="394" y2="250" stroke="#cfd8d5"/>
+    <line x1="66" y1="197.33" x2="394" y2="197.33" stroke="#eef2f0"/>
+    <line x1="66" y1="144.67" x2="394" y2="144.67" stroke="#eef2f0"/>
+    <line x1="66" y1="92" x2="394" y2="92" stroke="#eef2f0"/>
+    <text x="58" y="254" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">0.0</text>
+    <text x="58" y="201" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">0.4</text>
+    <text x="58" y="148.5" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">0.8</text>
+    <text x="58" y="96" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#8a948f">1.2</text>
 
-    <rect x="128" y="95" width="58" height="149" rx="5" fill="#607d8b"/>
-    <rect x="204" y="151" width="58" height="93" rx="5" fill="#2f9e7e"/>
-    <rect x="280" y="144" width="58" height="100" rx="5" fill="#d9822b"/>
+    <rect x="80" y="107.64" width="70" height="142.36" rx="5" fill="#9aa6b2"/>
+    <rect x="190" y="160.88" width="70" height="89.12" rx="5" fill="#1f9d76"/>
+    <rect x="300" y="153.82" width="70" height="96.18" rx="5" fill="#3f72d4"/>
 
-    <text x="137" y="85" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">1.081</text>
-    <text x="213" y="141" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">0.677</text>
-    <text x="289" y="134" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">0.731</text>
+    <text x="115" y="96" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#16241f">1.081</text>
+    <text x="225" y="149" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#16241f">0.677</text>
+    <text x="335" y="142" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#16241f">0.731</text>
 
-    <text x="126" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q8 fixed</text>
-    <text x="202" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q4 fixed</text>
-    <text x="268" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">controller</text>
+    <text x="115" y="274" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#5b6770">Q8 fixed</text>
+    <text x="225" y="274" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#15795b">Q4 fixed</text>
+    <text x="335" y="274" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#2f56a8">controller</text>
   </g>
 
-  <g transform="translate(48 464)">
-    <rect x="0" y="-20" width="18" height="18" rx="3" fill="#607d8b"/>
-    <text x="26" y="-6" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">fixed Q8</text>
-    <rect x="116" y="-20" width="18" height="18" rx="3" fill="#2f9e7e"/>
-    <text x="142" y="-6" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">fixed Q4 best baseline</text>
-    <rect x="304" y="-20" width="18" height="18" rx="3" fill="#d9822b"/>
-    <text x="330" y="-6" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">controller improves over fixed Q8</text>
-    <text x="0" y="26" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">Raspberry Pi 5, fan-on, 1800 sec per run, N=5 per condition. Output quality and LLM output safety were not evaluated.</text>
+  <!-- Reliability chips -->
+  <g font-family="Arial, Helvetica, sans-serif" font-size="12.5">
+    <rect x="40" y="470" width="132" height="26" rx="13" fill="#eef2f0"/>
+    <text x="106" y="487" text-anchor="middle" fill="#45524f">N = 5 &#215; 30 min</text>
+    <rect x="184" y="470" width="104" height="26" rx="13" fill="#eef2f0"/>
+    <text x="236" y="487" text-anchor="middle" fill="#45524f">0 throttling</text>
+    <rect x="300" y="470" width="116" height="26" rx="13" fill="#eef2f0"/>
+    <text x="358" y="487" text-anchor="middle" fill="#45524f">0 safety stops</text>
+    <rect x="428" y="470" width="262" height="26" rx="13" fill="#e7f3ee"/>
+    <text x="559" y="487" text-anchor="middle" fill="#15795b">switched Q8 to Q4 and back: 5/5 controller runs</text>
   </g>
+
+  <!-- Footer -->
+  <text x="40" y="518" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#7c8682">Raspberry Pi 5, active cooling &#183; Qwen2.5-1.5B, Q8 vs Q4 quantization &#183; identical chat workload (temperature 0, 64 tokens).</text>
+  <text x="40" y="536" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#7c8682">Values are medians across N=5 runs. Output quality and output safety were not evaluated.</text>
 </svg>
