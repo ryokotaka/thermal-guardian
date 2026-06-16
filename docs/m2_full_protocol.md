@@ -1,8 +1,11 @@
 # M2 Full Protocol
 
-This protocol is the next full evaluation plan after the M2-lite smoke run. It
-is intentionally conservative: the goal is repeatable evidence, not a strong
-claim from one run.
+This protocol fixed the full evaluation plan after the M2-lite smoke run. It is
+intentionally conservative: the goal is repeatable evidence, not a strong claim
+from one run.
+
+Status: the 2026-06-15/16 fan-on N=5 package completed. Results are recorded in
+`docs/m2_full_fan_on_n5_results.md`.
 
 ## Fixed Conditions
 
@@ -205,5 +208,6 @@ The fan-on full M2 package is complete when:
 - The report states median and IQR, and clearly separates measured facts from
   interpretation.
 
-Do not claim performance improvement, J/token improvement, or long-run stability
-until this full protocol is complete and reviewed.
+Do not claim that the controller is generally best. The completed fan-on N=5
+package showed the controller improved over fixed Q8 in this workload but did
+not outperform fixed Q4. See `docs/m2_full_fan_on_n5_results.md`.

@@ -153,3 +153,64 @@ Interpretation:
 - These are N=1 180-second smoke results. Do not claim performance improvement,
   J/token improvement, energy-efficiency improvement, or long-run stability from
   this evidence.
+
+## 2026-06-15/16 M2 Full Fan-on N=5
+
+Scope:
+
+- Device: Raspberry Pi 5 4GB
+- Cooling: active cooler connected (`fan_on`)
+- Models: Qwen2.5-1.5B Q8_0 and Q4_K_M GGUF
+- Workload: same chat prompt, `temperature=0.0`, `max_tokens=64`
+- Duration: 1800 seconds per run
+- Repetitions: N=5 per condition
+- Controller config: `temp_up_c=63.0`, `temp_down_c=59.0`,
+  `min_switch_interval_sec=10.0`
+- USB meter: YOJOCK KWS-2303C USB C Tester
+- Evidence directory: `data/m2/2026-06-15/fan_on_full/`
+- Archive: `data/m2/2026-06-15/fan_on_full_n5_artifacts_2026-06-16.tar.gz`
+- Archive SHA-256:
+  `a0cf7239e1aa0c8c685510a6b716d15d111b0509d466f11321181a6ea11d1511`
+
+Selected successful runs:
+
+- `q8_fixed_001` through `q8_fixed_005`
+- `q4_fixed_001`, `q4_fixed_002_retry`, `q4_fixed_003`, `q4_fixed_004`,
+  `q4_fixed_005`
+- `controller_001_retry`, `controller_002`, `controller_003`,
+  `controller_004`, `controller_005`
+
+Excluded invalid runs:
+
+- `controller_001`: router was not running at the start.
+- `q4_fixed_002`: llama-server processes were not running at the start.
+
+Condition medians:
+
+| condition | n | requests | tokens | median latency ms | median token/s | max temp C | mWh | J/token | throttle | safety stop |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| `q8_fixed` | 5 | 436 | 11772 | 4133.114 | 6.532604 | 65.3 | 3536 | 1.081346 | false | false |
+| `q4_fixed` | 5 | 685 | 20550 | 2661.228 | 11.272979 | 68.1 | 3864 | 0.676905 | false | false |
+| `controller` | 5 | 627 | 18504 | 2671.448 | 11.229868 | 68.1 | 3767 | 0.730637 | false | false |
+
+Observed:
+
+- All 15 selected runs completed.
+- `throttle_seen=false` for all selected runs.
+- `safety_stop=false` for all selected runs.
+- Every controller run recorded one `switch_to_q4` and one `switch_to_q8`.
+- In this workload, `q4_fixed` was best on median latency, token/s, and
+  J/token.
+- `controller` was better than `q8_fixed` on median latency, token/s, and
+  J/token.
+- `controller` did not outperform `q4_fixed`.
+
+Safe wording:
+
+`M2 fan-on N=5 completed on Raspberry Pi 5. The controller produced switch
+events in all selected controller runs and completed without throttle or safety
+stop. In this workload, fixed Q4 was best on latency, token/s, and J/token; the
+controller improved over fixed Q8 but did not outperform fixed Q4.`
+
+Do not claim the controller is generally best, that the 63/59 C thresholds are
+optimal, or that this proves fan-off or general long-run stability.
