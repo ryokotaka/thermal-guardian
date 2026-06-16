@@ -7,7 +7,13 @@ name = "edge-llm-guardian"
 version = "0.1.0"
 description = "Thermal-aware Q8/Q4 LLM router scaffold for Raspberry Pi 5."
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
 dependencies = [
     "requests>=2.31",
     "psutil>=5.9",

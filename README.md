@@ -214,6 +214,14 @@ git under ignored paths such as `data/` and `*.local.json`.
 - Fan-off long-run evaluation is intentionally not included; an earlier no-fan
   run reached a thermal safety stop.
 
+## License
+
+This repository is licensed under the Apache License 2.0. See
+[`LICENSE`](LICENSE).
+
+Model weights are not included in this repository. Third-party models and
+runtime dependencies are governed by their own licenses.
+
 ## Repository Map
 
 ```text
