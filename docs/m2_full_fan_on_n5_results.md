@@ -149,9 +149,11 @@ Do not claim:
 - the controller is the most energy-efficient option
 - the controller improves over fixed Q4
 - the 63/59 C thresholds are optimal
-- the result proves fan-off stability
+- fan-off stability
 - the result proves general long-run stability beyond this fan-on 30-minute
   N=5 protocol
+- any output-quality conclusion
+- any LLM output-safety conclusion
 
 ## Next Technical Questions
 

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" role="img" aria-labelledby="title desc">
+  <title id="title">M2 fan-on N=5 summary</title>
+  <desc id="desc">Median token per second and joules per token for fixed Q8, fixed Q4, and controller runs on Raspberry Pi 5.</desc>
+  <rect width="980" height="520" fill="#f8faf9"/>
+  <text x="48" y="54" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#17211f">M2 fan-on N=5: fixed Q4 is the baseline to beat</text>
+  <text x="48" y="84" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#465451">Controller improved over fixed Q8, switched in 5/5 runs, and completed without throttling or safety stops.</text>
+
+  <g transform="translate(48 122)">
+    <rect x="0" y="0" width="426" height="318" rx="10" fill="#ffffff" stroke="#d7dfdc"/>
+    <text x="24" y="36" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#17211f">Median throughput</text>
+    <text x="24" y="60" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#64716e">Higher is better, token/s</text>
+
+    <line x1="116" y1="244" x2="382" y2="244" stroke="#d7dfdc"/>
+    <line x1="116" y1="189" x2="382" y2="189" stroke="#eef2f0"/>
+    <line x1="116" y1="134" x2="382" y2="134" stroke="#eef2f0"/>
+    <line x1="116" y1="79" x2="382" y2="79" stroke="#eef2f0"/>
+    <text x="68" y="249" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0</text>
+    <text x="62" y="194" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">4</text>
+    <text x="62" y="139" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">8</text>
+    <text x="56" y="84" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">12</text>
+
+    <rect x="128" y="154" width="58" height="90" rx="5" fill="#607d8b"/>
+    <rect x="204" y="89" width="58" height="155" rx="5" fill="#2f9e7e"/>
+    <rect x="280" y="90" width="58" height="154" rx="5" fill="#d9822b"/>
+
+    <text x="139" y="144" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">6.53</text>
+    <text x="214" y="79" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">11.27</text>
+    <text x="289" y="80" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">11.23</text>
+
+    <text x="126" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q8 fixed</text>
+    <text x="202" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q4 fixed</text>
+    <text x="268" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">controller</text>
+  </g>
+
+  <g transform="translate(506 122)">
+    <rect x="0" y="0" width="426" height="318" rx="10" fill="#ffffff" stroke="#d7dfdc"/>
+    <text x="24" y="36" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#17211f">Median energy per token</text>
+    <text x="24" y="60" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#64716e">Lower is better, J/token</text>
+
+    <line x1="116" y1="244" x2="382" y2="244" stroke="#d7dfdc"/>
+    <line x1="116" y1="189" x2="382" y2="189" stroke="#eef2f0"/>
+    <line x1="116" y1="134" x2="382" y2="134" stroke="#eef2f0"/>
+    <line x1="116" y1="79" x2="382" y2="79" stroke="#eef2f0"/>
+    <text x="68" y="249" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0.0</text>
+    <text x="68" y="194" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0.4</text>
+    <text x="68" y="139" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">0.8</text>
+    <text x="68" y="84" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">1.2</text>
+
+    <rect x="128" y="95" width="58" height="149" rx="5" fill="#607d8b"/>
+    <rect x="204" y="151" width="58" height="93" rx="5" fill="#2f9e7e"/>
+    <rect x="280" y="144" width="58" height="100" rx="5" fill="#d9822b"/>
+
+    <text x="137" y="85" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">1.081</text>
+    <text x="213" y="141" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">0.677</text>
+    <text x="289" y="134" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#17211f">0.731</text>
+
+    <text x="126" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q8 fixed</text>
+    <text x="202" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">Q4 fixed</text>
+    <text x="268" y="274" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">controller</text>
+  </g>
+
+  <g transform="translate(48 464)">
+    <rect x="0" y="-20" width="18" height="18" rx="3" fill="#607d8b"/>
+    <text x="26" y="-6" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">fixed Q8</text>
+    <rect x="116" y="-20" width="18" height="18" rx="3" fill="#2f9e7e"/>
+    <text x="142" y="-6" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">fixed Q4 best baseline</text>
+    <rect x="304" y="-20" width="18" height="18" rx="3" fill="#d9822b"/>
+    <text x="330" y="-6" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#465451">controller improves over fixed Q8</text>
+    <text x="0" y="26" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64716e">Raspberry Pi 5, fan-on, 1800 sec per run, N=5 per condition. Output quality and LLM output safety were not evaluated.</text>
+  </g>
+</svg>
