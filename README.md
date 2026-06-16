@@ -156,6 +156,10 @@ python -m edge_llm_guardian.m2 power-summary \
 The 2026-06-14 fan-on M2-lite smoke evidence is summarized in
 `docs/m2_lite_completion.md`. The full M2 protocol is fixed in
 `docs/m2_full_protocol.md`; `config.m2.fan_on.example.json` records the tuned
-fan-on controller threshold for that protocol. These documents keep N=1 smoke
-evidence separate from future performance, J/token, and long-run stability
-claims.
+fan-on controller threshold for that protocol. The completed 2026-06-15/16
+fan-on M2 N=5 result package is summarized in
+`docs/m2_full_fan_on_n5_results.md`.
+
+Keep the result wording conservative: in the measured fan-on workload, fixed Q4
+was best on latency, token/s, and J/token; the controller improved over fixed Q8
+but did not outperform fixed Q4.

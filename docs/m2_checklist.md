@@ -97,11 +97,14 @@ That run shows the M2-lite harness can collect comparable CSV, manifest, graph,
 and manual power-meter evidence. It does not prove performance improvement,
 energy-efficiency improvement, J/token improvement, or long-run stability.
 
-## Full M2 Comes Later
+## Full M2 Fan-on Result
 
-Full M2 should follow `docs/m2_full_protocol.md`: 1800-second fan-on runs, N=5
-per condition, median+IQR reporting, manual USB power-meter readings, and a
+Full M2 fan-on followed `docs/m2_full_protocol.md`: 1800-second fan-on runs,
+N=5 per condition, median+IQR reporting, manual USB power-meter readings, and a
 tuned fan-on controller threshold for the controller condition.
+
+The completed 2026-06-15/16 result package is summarized in
+`docs/m2_full_fan_on_n5_results.md`.
 
 Before starting full M2, confirm the Phase A helpers are ready:
 
