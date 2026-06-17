@@ -116,11 +116,13 @@ decision — including switches that were blocked by cooldown — is written to 
 so the behavior can be audited after a run. The evaluation used `temp_up = 63 °C`,
 `temp_down = 59 °C`, and a 10-second cooldown.
 
-Here is that policy executing on the Pi during one 30-minute run — Q8 until the
-chip reaches 63 °C (~7 min), then Q4 for the rest of the load, peaking at 67.5 °C,
-far below the 82 °C safety stop:
+Here is that policy paying off on real hardware. The controller starts on Q8,
+reaches 63 °C at ~7 minutes, switches to Q4, and its throughput climbs from ~6.5
+to ~11 tokens/sec — matching fixed Q4 (the best baseline) for the rest of the run,
+while fixed Q8 stays slow throughout. It did this without ever nearing the 82 °C
+safety stop (peak 67.5 °C):
 
-![Controller thermal timeline: Q8 until 63 °C, then Q4, peak 67.5 °C, well under the 82 °C safety stop](docs/assets/m2_controller_thermal_timeline.svg)
+![Throughput over time: fixed Q8 stays near 6.5 tok/s, fixed Q4 near 11.3, and the controller climbs from the Q8 line to the Q4 line at the 63 °C switch](docs/assets/m2_throughput_timeline.svg)
 
 ## Evaluation
 
