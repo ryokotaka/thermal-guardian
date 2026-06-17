@@ -61,7 +61,9 @@ J/token). Across all five controller runs it switched Q8 → Q4 and back, with *
 throttling and no thermal safety stops**. The result is not a claim that the
 controller is universally better — it is evidence that the thermal-control path
 works on real hardware and a clear measurement of where a simple baseline still
-wins.
+wins. The controller earns its keep as a *measured* fallback for a future
+quality-sensitive workload where fixed Q4 is not good enough — not as a faster
+path than Q4 today.
 
 ## Why this exists
 
@@ -114,6 +116,12 @@ decision — including switches that were blocked by cooldown — is written to 
 so the behavior can be audited after a run. The evaluation used `temp_up = 63 °C`,
 `temp_down = 59 °C`, and a 10-second cooldown.
 
+Here is that policy executing on the Pi during one 30-minute run — Q8 until the
+chip reaches 63 °C (~7 min), then Q4 for the rest of the load, peaking at 67.5 °C,
+far below the 82 °C safety stop:
+
+![Controller thermal timeline: Q8 until 63 °C, then Q4, peak 67.5 °C, well under the 82 °C safety stop](docs/assets/m2_controller_thermal_timeline.svg)
+
 ## Evaluation
 
 The headline numbers come from the M2 fan-on protocol:
@@ -155,18 +163,13 @@ python -m pip install -e ".[dev]"
 python -m pytest
 ```
 
-Start fake Q8 and Q4 servers, then run the router:
+Start fake Q8 and Q4 servers, then run the router (add `--dry-run` to skip
+backends entirely):
 
 ```bash
 python scripts/fake_llama_server.py --port 8081 --name q8
 python scripts/fake_llama_server.py --port 8082 --name q4
 python -m thermal_guardian.router --config config.example.json
-```
-
-Dry-run mode does not contact a backend at all:
-
-```bash
-python -m thermal_guardian.router --config config.example.json --dry-run
 ```
 
 ## Run on a Raspberry Pi
