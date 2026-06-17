@@ -1,4 +1,4 @@
-# edge-llm-guardian
+# Thermal Guardian
 
 **A thermal-aware LLM router for the Raspberry Pi 5.** It keeps a locally hosted
 chatbot responsive under sustained load by automatically switching between a
@@ -9,6 +9,8 @@ temperature — all behind a standard OpenAI-compatible API.
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 ![Target](https://img.shields.io/badge/target-Raspberry%20Pi%205-c51a4a.svg)
 ![Status](https://img.shields.io/badge/status-research%20experiment-555.svg)
+
+> **Part of the Edge Guardian series** — resource-aware adaptive model switching on the Raspberry Pi 5. Sibling project: [Pose Guardian](https://github.com/ryokotaka/edge-inference-guardian) (real-time pose estimation that sheds load under CPU/resource pressure).
 
 ---
 
@@ -23,7 +25,7 @@ and once it gets too hot it protects itself by *throttling* — deliberately
 slowing down. For a chatbot, that means replies turn sluggish exactly when the
 device is busiest.
 
-`edge-llm-guardian` sits in front of two versions of the same AI model: a
+`Thermal Guardian` sits in front of two versions of the same AI model: a
 heavier, higher-precision one (**Q8**) and a lighter, faster fallback (**Q4**).
 It continuously reads the chip's temperature and — much like a car shifting to a
 lower gear on a steep climb — switches to the lighter model when things heat up,
@@ -84,7 +86,7 @@ are future work, not claims made by this repository.
 ```mermaid
 flowchart LR
     Client["Client app<br/>(any OpenAI SDK)"]
-    Router["edge-llm-guardian<br/>router"]
+    Router["Thermal Guardian<br/>router"]
     Decision{"Thermal controller<br/>hysteresis + cooldown"}
     Monitor["Pi monitor<br/>temp / clock / throttle"]
     Q8["Q8 server<br/>higher precision"]
@@ -158,13 +160,13 @@ Start fake Q8 and Q4 servers, then run the router:
 ```bash
 python scripts/fake_llama_server.py --port 8081 --name q8
 python scripts/fake_llama_server.py --port 8082 --name q4
-python -m edge_llm_guardian.router --config config.example.json
+python -m thermal_guardian.router --config config.example.json
 ```
 
 Dry-run mode does not contact a backend at all:
 
 ```bash
-python -m edge_llm_guardian.router --config config.example.json --dry-run
+python -m thermal_guardian.router --config config.example.json --dry-run
 ```
 
 ## Run on a Raspberry Pi
@@ -184,9 +186,9 @@ cp config.m2.fan_on.example.json config.m2.fan_on.local.json
 Start and check the Q8/Q4 servers:
 
 ```bash
-python -m edge_llm_guardian.m0 start --config m0.local.json
-python -m edge_llm_guardian.m0 check --config m0.local.json
-python -m edge_llm_guardian.m0 chat-smoke \
+python -m thermal_guardian.m0 start --config m0.local.json
+python -m thermal_guardian.m0 check --config m0.local.json
+python -m thermal_guardian.m0 chat-smoke \
   --config m0.local.json \
   --output data/m0/YYYY-MM-DD/chat_smoke.csv
 ```
@@ -194,7 +196,7 @@ python -m edge_llm_guardian.m0 chat-smoke \
 Run an M2 comparison condition:
 
 ```bash
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode controller \
   --output-dir data/m2/YYYY-MM-DD/fan_on_full/controller_001 \
@@ -206,7 +208,7 @@ python -m edge_llm_guardian.m2 run \
 Join manual USB power-meter readings with run summaries:
 
 ```bash
-python -m edge_llm_guardian.m2 power-summary \
+python -m thermal_guardian.m2 power-summary \
   --manual-power data/m2/YYYY-MM-DD/fan_on_full/manual_power_readings.csv \
   --input data/m2/YYYY-MM-DD/fan_on_full/q8_fixed_001 \
   --input data/m2/YYYY-MM-DD/fan_on_full/q4_fixed_001 \
@@ -219,7 +221,7 @@ python -m edge_llm_guardian.m2 power-summary \
 ## Repository map
 
 ```text
-src/edge_llm_guardian/
+src/thermal_guardian/
   monitor.py      Raspberry Pi telemetry (temperature, clock, throttling)
   controller.py   Q8/Q4 thermal state machine (hysteresis + cooldown)
   router.py       OpenAI-compatible forwarding API

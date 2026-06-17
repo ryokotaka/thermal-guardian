@@ -40,25 +40,25 @@ Memory caution:
 Print the commands first:
 
 ```bash
-python -m edge_llm_guardian.m0 start --config m0.local.json --dry-run
+python -m thermal_guardian.m0 start --config m0.local.json --dry-run
 ```
 
 Start both `llama-server` processes:
 
 ```bash
-python -m edge_llm_guardian.m0 start --config m0.local.json
+python -m thermal_guardian.m0 start --config m0.local.json
 ```
 
 Check both health endpoints:
 
 ```bash
-python -m edge_llm_guardian.m0 check --config m0.local.json
+python -m thermal_guardian.m0 check --config m0.local.json
 ```
 
 Send one minimal chat request to each server:
 
 ```bash
-python -m edge_llm_guardian.m0 chat-smoke \
+python -m thermal_guardian.m0 chat-smoke \
   --config m0.local.json \
   --output data/m0/YYYY-MM-DD/chat_smoke.csv
 ```
@@ -66,7 +66,7 @@ python -m edge_llm_guardian.m0 chat-smoke \
 Record RSS for both saved PIDs:
 
 ```bash
-python -m edge_llm_guardian.m0 rss --config m0.local.json
+python -m thermal_guardian.m0 rss --config m0.local.json
 ```
 
 ## Power-Meter Acceptance Check
@@ -74,7 +74,7 @@ python -m edge_llm_guardian.m0 rss --config m0.local.json
 Take one PMIC sample while idle:
 
 ```bash
-python -m edge_llm_guardian.m0 pmic-sample \
+python -m thermal_guardian.m0 pmic-sample \
   --output data/m0/YYYY-MM-DD/pmic_idle.csv \
   --label idle
 ```
@@ -82,7 +82,7 @@ python -m edge_llm_guardian.m0 pmic-sample \
 Take one PMIC sample while the Pi is under load:
 
 ```bash
-python -m edge_llm_guardian.m0 pmic-sample \
+python -m thermal_guardian.m0 pmic-sample \
   --output data/m0/YYYY-MM-DD/pmic_load.csv \
   --label load
 ```

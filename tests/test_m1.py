@@ -4,8 +4,8 @@ import json
 import pytest
 import requests
 
-from edge_llm_guardian.config import RouterConfig
-from edge_llm_guardian.m1 import (
+from thermal_guardian.config import RouterConfig
+from thermal_guardian.m1 import (
     LoadRunRow,
     analyze_events,
     build_load_payload,
@@ -16,14 +16,14 @@ from edge_llm_guardian.m1 import (
     run_fake_switch,
     run_load_run,
 )
-from edge_llm_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
+from thermal_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
 
 
 def test_build_load_payload_is_openai_compatible_without_prompt_id() -> None:
-    payload = build_load_payload(model="edge-llm-guardian", prompt="Say ok.", max_tokens=4)
+    payload = build_load_payload(model="thermal-guardian", prompt="Say ok.", max_tokens=4)
 
     assert payload == {
-        "model": "edge-llm-guardian",
+        "model": "thermal-guardian",
         "messages": [{"role": "user", "content": "Say ok."}],
         "max_tokens": 4,
         "temperature": 0.0,
@@ -162,7 +162,7 @@ def test_load_run_cli_exits_nonzero_on_failure(monkeypatch, tmp_path) -> None:
             LoadRunRow(2.0, "p2", False, 500, 1.0, 0, "", "failed"),
         ]
 
-    monkeypatch.setattr("edge_llm_guardian.m1.run_load_run", fake_run_load_run)
+    monkeypatch.setattr("thermal_guardian.m1.run_load_run", fake_run_load_run)
 
     with pytest.raises(SystemExit) as exc:
         main(
@@ -308,7 +308,7 @@ def test_read_event_rows_and_parse_temperature_sequence(tmp_path) -> None:
 
 
 def read_event_rows_from_dict(row: dict[str, str]):
-    from edge_llm_guardian.m1 import EventRow
+    from thermal_guardian.m1 import EventRow
 
     return EventRow(
         ts=float(row["ts"]),

@@ -14,11 +14,11 @@ from typing import Any, Callable
 
 import requests
 
-from edge_llm_guardian.config import RouterConfig, load_config
-from edge_llm_guardian.controller import RouteEvent
-from edge_llm_guardian.logger import CsvLogger
-from edge_llm_guardian.monitor import FakeMonitor, MonitorSnapshot
-from edge_llm_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER, RouterRuntime
+from thermal_guardian.config import RouterConfig, load_config
+from thermal_guardian.controller import RouteEvent
+from thermal_guardian.logger import CsvLogger
+from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot
+from thermal_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER, RouterRuntime
 
 
 LOAD_REQUEST_FIELDS = [
@@ -94,7 +94,7 @@ def run_load_run(
     timeout_sec: float = 120.0,
     prompt: str = "Reply with the single word ok.",
     max_tokens: int = 64,
-    model: str = "edge-llm-guardian",
+    model: str = "thermal-guardian",
     prompt_id_prefix: str = "m1-load",
     session: requests.Session | None = None,
     now_func: Callable[[], float] = time.time,
@@ -352,7 +352,7 @@ def _response_json_or_empty(response: requests.Response) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="M1 helpers for edge-llm-guardian.")
+    parser = argparse.ArgumentParser(description="M1 helpers for thermal-guardian.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     load_parser = subparsers.add_parser(
@@ -367,7 +367,7 @@ def main(argv: list[str] | None = None) -> None:
     load_parser.add_argument("--timeout-sec", type=float, default=120.0)
     load_parser.add_argument("--prompt", default="Reply with the single word ok.")
     load_parser.add_argument("--max-tokens", type=int, default=64)
-    load_parser.add_argument("--model", default="edge-llm-guardian")
+    load_parser.add_argument("--model", default="thermal-guardian")
     load_parser.add_argument("--prompt-id-prefix", default="m1-load")
 
     analyze_parser = subparsers.add_parser(

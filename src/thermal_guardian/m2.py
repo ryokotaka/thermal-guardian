@@ -19,8 +19,8 @@ from typing import Any, Callable
 
 import requests
 
-from edge_llm_guardian.monitor import MonitorSnapshot, VcgencmdMonitor
-from edge_llm_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
+from thermal_guardian.monitor import MonitorSnapshot, VcgencmdMonitor
+from thermal_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
 
 
 M2_MODES = ("q8_fixed", "q4_fixed", "controller")
@@ -97,7 +97,7 @@ class M2Config:
     max_consecutive_failures: int = 3
     prompt: str = "Reply with one short sentence about edge inference."
     max_tokens: int = 64
-    model: str = "edge-llm-guardian"
+    model: str = "thermal-guardian"
     sampling_interval_sec: float = 2.0
     safety_temp_c: float = 82.0
     cooling: str = "fan_on"
@@ -295,7 +295,7 @@ def run_m2(
                 "safety_reason": safety_reason,
                 "stop_event": stop_event,
             },
-            name="edge-llm-m2-telemetry",
+            name="thermal-guardian-m2-telemetry",
             daemon=True,
         )
         telemetry_thread.start()
@@ -390,7 +390,7 @@ def build_manifest(
     started_ts: float,
 ) -> dict[str, Any]:
     return {
-        "schema": "edge-llm-guardian-m2-lite-v1",
+        "schema": "thermal-guardian-m2-lite-v1",
         "started_ts": started_ts,
         "finished_ts": None,
         "mode": mode,
@@ -436,7 +436,7 @@ def summarize_runs(input_dirs: list[str | Path], *, output: str | Path) -> dict[
         for mode, rows in sorted(by_mode.items())
     }
     summary = {
-        "schema": "edge-llm-guardian-m2-summary-v1",
+        "schema": "thermal-guardian-m2-summary-v1",
         "ok": all(bool(run.get("ok")) for run in run_summaries),
         "run_count": len(run_summaries),
         "runs": run_summaries,
@@ -1023,7 +1023,7 @@ def _with_cli_overrides(config: M2Config, args: argparse.Namespace) -> M2Config:
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="M2-lite helpers for edge-llm-guardian.")
+    parser = argparse.ArgumentParser(description="M2-lite helpers for thermal-guardian.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser(

@@ -27,21 +27,21 @@ Run a short N=1 check for each condition. Use 5-10 minutes first; increase only
 after CSVs and summaries look correct.
 
 ```bash
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode q8_fixed \
   --output-dir data/m2/YYYY-MM-DD/q8_fixed_fan_on_001 \
   --duration-sec 600 \
   --cooling fan_on
 
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode q4_fixed \
   --output-dir data/m2/YYYY-MM-DD/q4_fixed_fan_on_001 \
   --duration-sec 600 \
   --cooling fan_on
 
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode controller \
   --output-dir data/m2/YYYY-MM-DD/controller_fan_on_001 \
@@ -65,7 +65,7 @@ Each run directory should contain:
 Summarize the three short runs:
 
 ```bash
-python -m edge_llm_guardian.m2 summarize \
+python -m thermal_guardian.m2 summarize \
   --input data/m2/YYYY-MM-DD/q8_fixed_fan_on_001 \
   --input data/m2/YYYY-MM-DD/q4_fixed_fan_on_001 \
   --input data/m2/YYYY-MM-DD/controller_fan_on_001 \
@@ -75,7 +75,7 @@ python -m edge_llm_guardian.m2 summarize \
 Create a same-timeline graph for each run:
 
 ```bash
-python -m edge_llm_guardian.m2 plot \
+python -m thermal_guardian.m2 plot \
   --input data/m2/YYYY-MM-DD/controller_fan_on_001 \
   --output data/m2/YYYY-MM-DD/controller_main_graph.svg
 ```
@@ -109,7 +109,7 @@ The completed 2026-06-15/16 result package is summarized in
 Before starting full M2, confirm the Phase A helpers are ready:
 
 ```bash
-python -m edge_llm_guardian.m2 power-summary --help
+python -m thermal_guardian.m2 power-summary --help
 git check-ignore m2.local.json config.m2.fan_on.local.json
 ```
 

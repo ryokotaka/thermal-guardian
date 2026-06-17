@@ -93,7 +93,7 @@ starting temperature explicitly if waiting is impractical.
 For fixed Q8 and Q4 runs, call the M2 helper directly:
 
 ```bash
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode q8_fixed \
   --output-dir data/m2/YYYY-MM-DD/fan_on_full/q8_fixed_001 \
@@ -101,7 +101,7 @@ python -m edge_llm_guardian.m2 run \
   --cooling fan_on \
   --prompt-id-prefix m2-full
 
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode q4_fixed \
   --output-dir data/m2/YYYY-MM-DD/fan_on_full/q4_fixed_001 \
@@ -118,9 +118,9 @@ For controller runs:
 3. Run M2 against the router.
 
 ```bash
-python -m edge_llm_guardian.router --config config.m2.fan_on.local.json
+python -m thermal_guardian.router --config config.m2.fan_on.local.json
 
-python -m edge_llm_guardian.m2 run \
+python -m thermal_guardian.m2 run \
   --config m2.local.json \
   --mode controller \
   --output-dir data/m2/YYYY-MM-DD/fan_on_full/controller_001 \
@@ -168,7 +168,7 @@ J/token = mWh * 3.6 / tokens_out_total
 Generate the joined power summary after all selected runs:
 
 ```bash
-python -m edge_llm_guardian.m2 power-summary \
+python -m thermal_guardian.m2 power-summary \
   --manual-power data/m2/YYYY-MM-DD/fan_on_full/manual_power_readings.csv \
   --input data/m2/YYYY-MM-DD/fan_on_full/q8_fixed_001 \
   --input data/m2/YYYY-MM-DD/fan_on_full/q4_fixed_001 \

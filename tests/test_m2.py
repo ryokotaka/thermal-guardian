@@ -4,7 +4,7 @@ import json
 import pytest
 import requests
 
-from edge_llm_guardian.m2 import (
+from thermal_guardian.m2 import (
     M2Config,
     build_power_summary,
     build_chat_payload,
@@ -14,8 +14,8 @@ from edge_llm_guardian.m2 import (
     run_m2,
     summarize_runs,
 )
-from edge_llm_guardian.monitor import FakeMonitor, MonitorSnapshot
-from edge_llm_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
+from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot
+from thermal_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
 
 
 def test_m2_config_selects_expected_urls_and_payload_has_no_prompt_id() -> None:
@@ -31,7 +31,7 @@ def test_m2_config_selects_expected_urls_and_payload_has_no_prompt_id() -> None:
     assert config.url_for_mode("q4_fixed") == "http://q4:8082"
     assert config.url_for_mode("controller") == "http://router:8080"
     assert build_chat_payload(config) == {
-        "model": "edge-llm-guardian",
+        "model": "thermal-guardian",
         "messages": [{"role": "user", "content": "Say ok."}],
         "max_tokens": 4,
         "temperature": 0.0,
@@ -163,7 +163,7 @@ def test_run_m2_records_request_failure_and_cli_exits_nonzero(monkeypatch, tmp_p
 
     config_path = tmp_path / "m2.json"
     config_path.write_text(json.dumps({}), encoding="utf-8")
-    monkeypatch.setattr("edge_llm_guardian.m2.run_m2", fake_run_m2)
+    monkeypatch.setattr("thermal_guardian.m2.run_m2", fake_run_m2)
 
     with pytest.raises(SystemExit) as exc:
         main(["run", "--config", str(config_path), "--mode", "controller"])

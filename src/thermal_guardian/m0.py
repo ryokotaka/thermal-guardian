@@ -528,7 +528,7 @@ def _append_csv_rows(
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="M0 helpers for edge-llm-guardian.")
+    parser = argparse.ArgumentParser(description="M0 helpers for thermal-guardian.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     start_parser = subparsers.add_parser("start", help="Start both llama-server processes.")

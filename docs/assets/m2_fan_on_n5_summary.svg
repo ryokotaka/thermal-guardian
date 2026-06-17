@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="548" viewBox="0 0 960 548" role="img" aria-labelledby="title desc">
   <title id="title">Raspberry Pi 5 fan-on N=5 results: speed and energy by routing mode</title>
-  <desc id="desc">Median tokens per second (higher is better) and joules per token (lower is better) for fixed Q8, fixed Q4, and the thermal controller across five 30-minute runs each on a Raspberry Pi 5. The controller beat fixed Q8; fixed Q4 remained the best baseline.</desc>
+  <desc id="desc">Median tokens per second (higher is better) and joules per token (lower is better) for fixed Q8, fixed Q4, and the thermal controller across five 30-minute runs each on a Raspberry Pi 5. The controller beat heavy Q8 on speed and energy, and tracked light Q4, the best baseline in this experiment.</desc>
 
   <rect width="960" height="548" fill="#f6f8f8"/>
 
@@ -10,7 +10,7 @@
 
   <!-- Takeaway band -->
   <rect x="40" y="86" width="880" height="46" rx="9" fill="#eef3fb" stroke="#d6e0f5"/>
-  <text x="60" y="115" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#28406e"><tspan font-weight="700">Takeaway:</tspan> controller beat fixed Q8; fixed Q4 remained the best baseline.</text>
+  <text x="60" y="115" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#28406e"><tspan font-weight="700">Takeaway:</tspan> the controller beat heavy Q8 (+72% speed, -32% energy) and tracked light Q4, the best baseline here.</text>
 
   <!-- Card A: throughput -->
   <g transform="translate(40 150)">
@@ -78,8 +78,8 @@
     <text x="236" y="487" text-anchor="middle" fill="#45524f">0 throttling</text>
     <rect x="300" y="470" width="116" height="26" rx="13" fill="#eef2f0"/>
     <text x="358" y="487" text-anchor="middle" fill="#45524f">0 safety stops</text>
-    <rect x="428" y="470" width="262" height="26" rx="13" fill="#e7f3ee"/>
-    <text x="559" y="487" text-anchor="middle" fill="#15795b">Q8/Q4 switches: 5/5 runs</text>
+    <rect x="428" y="470" width="350" height="26" rx="13" fill="#e7f3ee"/>
+    <text x="603" y="487" text-anchor="middle" fill="#15795b">switched Q8 to Q4 and back: 5/5 controller runs</text>
   </g>
 
   <!-- Footer -->

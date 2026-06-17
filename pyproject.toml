@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "edge-llm-guardian"
+name = "thermal-guardian"
 version = "0.1.0"
-description = "Thermal-aware Q8/Q4 LLM router scaffold for Raspberry Pi 5."
+description = "Thermal-aware OpenAI-compatible Q8/Q4 LLM router for Raspberry Pi 5."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
@@ -25,10 +25,10 @@ dev = [
 ]
 
 [project.scripts]
-edge-llm-router = "edge_llm_guardian.router:main"
-edge-llm-m0 = "edge_llm_guardian.m0:main"
-edge-llm-m1 = "edge_llm_guardian.m1:main"
-edge-llm-m2 = "edge_llm_guardian.m2:main"
+thermal-guardian = "thermal_guardian.router:main"
+thermal-guardian-m0 = "thermal_guardian.m0:main"
+thermal-guardian-m1 = "thermal_guardian.m1:main"
+thermal-guardian-m2 = "thermal_guardian.m2:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

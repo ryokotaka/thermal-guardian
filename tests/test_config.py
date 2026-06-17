@@ -1,6 +1,6 @@
 import pytest
 
-from edge_llm_guardian.config import RouterConfig
+from thermal_guardian.config import RouterConfig
 
 
 def test_config_rejects_unknown_keys() -> None:
