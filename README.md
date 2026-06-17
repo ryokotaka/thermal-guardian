@@ -10,7 +10,7 @@ temperature — all behind a standard OpenAI-compatible API.
 ![Target](https://img.shields.io/badge/target-Raspberry%20Pi%205-c51a4a.svg)
 ![Status](https://img.shields.io/badge/status-research%20experiment-555.svg)
 
-> **Part of the Edge Guardian series** — resource-aware adaptive model switching on the Raspberry Pi 5. Sibling project: [Pose Guardian](https://github.com/ryokotaka/edge-inference-guardian) (real-time pose estimation that sheds load under CPU/resource pressure).
+> **Part of the Edge Guardian series** — resource-aware adaptive model switching on the Raspberry Pi 5. Sibling project: [Pose Guardian](https://github.com/ryokotaka/pose-guardian) (real-time pose estimation that sheds load under CPU/resource pressure).
 
 ---
 
