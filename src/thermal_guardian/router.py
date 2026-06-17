@@ -15,10 +15,10 @@ from urllib.parse import urljoin
 
 import requests
 
-from edge_llm_guardian.config import RouterConfig, load_config
-from edge_llm_guardian.controller import ControllerConfig, RouteTarget, ThermalController
-from edge_llm_guardian.logger import CsvLogger, RequestLogRow
-from edge_llm_guardian.monitor import VcgencmdMonitor
+from thermal_guardian.config import RouterConfig, load_config
+from thermal_guardian.controller import ControllerConfig, RouteTarget, ThermalController
+from thermal_guardian.logger import CsvLogger, RequestLogRow
+from thermal_guardian.monitor import VcgencmdMonitor
 
 
 CHAT_COMPLETIONS_PATH = "/v1/chat/completions"
@@ -118,7 +118,7 @@ class RouterRuntime:
         self._stop_event.clear()
         self._monitor_thread = threading.Thread(
             target=self._monitor_loop,
-            name="edge-llm-monitor",
+            name="thermal-guardian-monitor",
             daemon=True,
         )
         self._monitor_thread.start()
@@ -206,18 +206,18 @@ def run_server(config: RouterConfig) -> None:
 
     Handler.runtime = runtime
     server = ThreadingHTTPServer((config.listen_host, config.listen_port), Handler)
-    print(f"edge-llm-router listening on http://{config.listen_host}:{config.listen_port}")
+    print(f"thermal-guardian listening on http://{config.listen_host}:{config.listen_port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("edge-llm-router stopping")
+        print("thermal-guardian stopping")
     finally:
         runtime.stop_background_monitor()
         server.server_close()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the edge LLM routing server.")
+    parser = argparse.ArgumentParser(description="Run the Thermal Guardian routing server.")
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

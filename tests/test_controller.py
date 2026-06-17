@@ -1,10 +1,10 @@
-from edge_llm_guardian.controller import (
+from thermal_guardian.controller import (
     ControllerConfig,
     RouteEvent,
     RouteTarget,
     ThermalController,
 )
-from edge_llm_guardian.monitor import MonitorSnapshot
+from thermal_guardian.monitor import MonitorSnapshot
 
 
 def snapshot(ts: float, temp_c: float) -> MonitorSnapshot:

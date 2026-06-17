@@ -1,4 +1,4 @@
-from edge_llm_guardian.monitor import (
+from thermal_guardian.monitor import (
     FakeMonitor,
     MonitorSnapshot,
     _format_throttled_hex,

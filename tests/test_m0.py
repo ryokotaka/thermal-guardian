@@ -4,7 +4,7 @@ import json
 import pytest
 import requests
 
-from edge_llm_guardian.m0 import (
+from thermal_guardian.m0 import (
     ChatSmokeRow,
     LlamaServerInstance,
     M0Config,
@@ -237,7 +237,7 @@ def test_chat_smoke_cli_exits_nonzero_on_failure(tmp_path, monkeypatch) -> None:
             ChatSmokeRow(1.0, "q4", "http://127.0.0.1:8082/v1/chat/completions", False, None, 1.0, 0, "p2", "failed"),
         ]
 
-    monkeypatch.setattr("edge_llm_guardian.m0.run_chat_smoke", fake_run_chat_smoke)
+    monkeypatch.setattr("thermal_guardian.m0.run_chat_smoke", fake_run_chat_smoke)
 
     with pytest.raises(SystemExit) as exc:
         main(["chat-smoke", "--config", str(config_path)])
@@ -271,7 +271,7 @@ def test_read_pmic_read_adc_missing_vcgencmd_is_pi_specific(monkeypatch) -> None
     def raise_missing(*args, **kwargs):
         raise FileNotFoundError
 
-    monkeypatch.setattr("edge_llm_guardian.m0.subprocess.run", raise_missing)
+    monkeypatch.setattr("thermal_guardian.m0.subprocess.run", raise_missing)
 
     with pytest.raises(PmicReadError, match="Raspberry Pi specific"):
         read_pmic_read_adc()
@@ -281,7 +281,7 @@ def test_pmic_sample_cli_exits_nonzero_with_clear_error(monkeypatch, tmp_path, c
     def raise_pmic_error():
         raise PmicReadError("vcgencmd pmic_read_adc is Raspberry Pi specific")
 
-    monkeypatch.setattr("edge_llm_guardian.m0.read_pmic_read_adc", raise_pmic_error)
+    monkeypatch.setattr("thermal_guardian.m0.read_pmic_read_adc", raise_pmic_error)
 
     with pytest.raises(SystemExit) as exc:
         main(["pmic-sample", "--output", str(tmp_path / "pmic.csv"), "--label", "idle"])

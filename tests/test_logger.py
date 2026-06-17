@@ -1,8 +1,8 @@
 import csv
 
-from edge_llm_guardian.controller import RouteEvent, RouteTarget, RouteDecision
-from edge_llm_guardian.logger import CsvLogger, EVENT_FIELDS, REQUEST_FIELDS, RequestLogRow
-from edge_llm_guardian.monitor import MonitorSnapshot
+from thermal_guardian.controller import RouteEvent, RouteTarget, RouteDecision
+from thermal_guardian.logger import CsvLogger, EVENT_FIELDS, REQUEST_FIELDS, RequestLogRow
+from thermal_guardian.monitor import MonitorSnapshot
 
 
 def test_csv_logger_writes_expected_headers_and_rows(tmp_path) -> None:

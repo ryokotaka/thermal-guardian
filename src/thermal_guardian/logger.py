@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import csv
 
-from edge_llm_guardian.controller import RouteDecision, RouteTarget
+from thermal_guardian.controller import RouteDecision, RouteTarget
 
 
 EVENT_FIELDS = ["ts", "temp_c", "clock_hz", "throttled_hex", "state", "event"]

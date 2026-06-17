@@ -1,10 +1,10 @@
 import json
 
-from edge_llm_guardian.config import RouterConfig
-from edge_llm_guardian.controller import ControllerConfig, RouteTarget, ThermalController
-from edge_llm_guardian.logger import CsvLogger
-from edge_llm_guardian.monitor import FakeMonitor, MonitorSnapshot
-from edge_llm_guardian.router import (
+from thermal_guardian.config import RouterConfig
+from thermal_guardian.controller import ControllerConfig, RouteTarget, ThermalController
+from thermal_guardian.logger import CsvLogger
+from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot
+from thermal_guardian.router import (
     PROMPT_ID_HEADER,
     RouterRuntime,
     _backend_url,
@@ -145,7 +145,7 @@ def test_runtime_logs_prompt_id_header_without_mutating_body(tmp_path) -> None:
         logger=CsvLogger(tmp_path),
         session=session,
     )
-    body = json.dumps({"model": "edge-llm-guardian", "messages": []}).encode("utf-8")
+    body = json.dumps({"model": "thermal-guardian", "messages": []}).encode("utf-8")
 
     response = runtime.handle_chat_completion(
         body,

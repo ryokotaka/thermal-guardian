@@ -10,7 +10,7 @@
   "max_consecutive_failures": 3,
   "prompt": "Reply with one short sentence about edge inference.",
   "max_tokens": 64,
-  "model": "edge-llm-guardian",
+  "model": "thermal-guardian",
   "sampling_interval_sec": 2.0,
   "safety_temp_c": 82.0,
   "cooling": "fan_on",

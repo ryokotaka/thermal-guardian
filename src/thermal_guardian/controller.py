@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from edge_llm_guardian.monitor import MonitorSnapshot
+from thermal_guardian.monitor import MonitorSnapshot
 
 
 class RouteTarget(str, Enum):
