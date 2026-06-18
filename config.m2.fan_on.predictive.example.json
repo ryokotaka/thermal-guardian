@@ -1,0 +1,15 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 8080,
+  "q8_url": "http://127.0.0.1:8081",
+  "q4_url": "http://127.0.0.1:8082",
+  "monitor_interval_sec": 2.0,
+  "temp_up_c": 63.0,
+  "temp_down_c": 59.0,
+  "min_switch_interval_sec": 10.0,
+  "look_ahead_sec": 30.0,
+  "slope_window": 5,
+  "request_timeout_sec": 120.0,
+  "log_dir": "logs",
+  "dry_run": false
+}

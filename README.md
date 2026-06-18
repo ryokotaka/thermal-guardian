@@ -65,6 +65,30 @@ wins. The controller earns its keep as a *measured* fallback for a future
 quality-sensitive workload where fixed Q4 is not good enough — not as a faster
 path than Q4 today.
 
+## Question -> measurement -> finding -> implication
+
+The router is not the whole result. The project is considered finished only
+when a measurement reveals something non-obvious about edge LLM inference and
+the README can explain the question, measurement, finding, and implication.
+
+Current evidence-backed finding:
+
+- **Question:** under sustained local LLM load on a Raspberry Pi 5, is a thermal
+  controller a better default than simply choosing one fixed quantization level?
+- **Measurement:** fixed Q8, fixed Q4, and the thermal controller were each run
+  for 30 minutes x N=5 with the same prompt, active cooling, USB power-meter
+  readings, telemetry CSVs, and router switch logs.
+- **Finding:** for this prompt and fan-on setup, fixed Q4 was the best measured
+  baseline. The controller's value was narrower but real: it avoided staying on
+  fixed Q8 under sustained load, improved over fixed Q8 by +72% token/s and
+  -32% J/token, and recorded Q8 -> Q4 -> Q8 switch events in 5/5 controller
+  runs. It did not outperform fixed Q4.
+- **Implication:** the next discovery step is not another "the controller
+  works" demo. The next useful question is why and when control matters: for
+  example, whether Q4-only output quality is unacceptable for some prompts,
+  whether energy per token changes non-linearly with temperature, or whether
+  memory bandwidth is the actual bottleneck.
+
 ## Why this exists
 
 Small edge devices can run local LLMs, but they do not behave like desktop GPUs.
@@ -137,13 +161,7 @@ What the experiment **showed**:
 - The controller improved over fixed Q8 (+72% tok/s, −32% J/token) but did not
   outperform fixed Q4.
 
-What it **does not prove**:
-
-- Nothing about output quality — it was not measured.
-- Nothing about LLM output safety — it was not measured.
-- That `63 / 59 °C` are optimal thresholds — they were tuned for this fan-on run.
-- Fan-off stability — an earlier no-fan run reached a thermal safety stop.
-- That the controller is generally better than fixed Q4.
+(What it does *not* show is listed under [Limitations](#limitations).)
 
 Full evidence summary:
 [`docs/m2_full_fan_on_n5_results.md`](docs/m2_full_fan_on_n5_results.md).
@@ -263,6 +281,10 @@ to a specific evidence package.
 
 ## Roadmap / open questions
 
+- **Look-ahead control (active investigation):** the thermal time constant is
+  long — does switching on *predicted* temperature change overshoot and
+  time-above-threshold versus reactive control? Apparatus, protocol, and analysis
+  in [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?
@@ -270,6 +292,11 @@ to a specific evidence package.
   Q8 / Q4 / controller trade-off?
 - Can thresholds be tuned for lower peak temperature without giving up too much
   Q8 time?
+- Does J/token break down non-linearly as temperature rises within a run? This
+  requires time-aligned power telemetry, not just run-level USB-meter totals.
+- Is the limiting factor thermal headroom, CPU execution, or memory bandwidth?
+  This requires `perf`, STREAM-style bandwidth measurement, and a roofline-style
+  plot before making architecture claims.
 
 ## License
 

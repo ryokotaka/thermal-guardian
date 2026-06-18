@@ -49,6 +49,8 @@ class RouterRuntime:
                 temp_up_c=config.temp_up_c,
                 temp_down_c=config.temp_down_c,
                 min_switch_interval_sec=config.min_switch_interval_sec,
+                look_ahead_sec=config.look_ahead_sec,
+                slope_window=config.slope_window,
             )
         )
         self.logger = logger or CsvLogger(config.log_dir)
