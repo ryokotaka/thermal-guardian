@@ -93,6 +93,7 @@ class M2Config:
     duration_sec: float = 600.0
     request_count: int | None = None
     interval_sec: float = 0.0
+    arrival_interval_sec: float | None = None
     timeout_sec: float = 120.0
     max_consecutive_failures: int = 3
     prompt: str = "Reply with one short sentence about edge inference."
@@ -112,6 +113,13 @@ class M2Config:
             raise ValueError("request_count must be positive when provided")
         if self.interval_sec < 0:
             raise ValueError("interval_sec must be non-negative")
+        if self.arrival_interval_sec is not None:
+            if self.arrival_interval_sec <= 0:
+                raise ValueError("arrival_interval_sec must be positive when provided")
+            if self.interval_sec > 0:
+                raise ValueError(
+                    "interval_sec and arrival_interval_sec are mutually exclusive"
+                )
         if self.timeout_sec <= 0:
             raise ValueError("timeout_sec must be positive")
         if self.max_consecutive_failures <= 0:
@@ -300,7 +308,8 @@ def run_m2(
         )
         telemetry_thread.start()
 
-    deadline = monotonic_func() + config.duration_sec
+    loop_start = monotonic_func()
+    deadline = loop_start + config.duration_sec
     sent = 0
     consecutive_failures = 0
     try:
@@ -309,6 +318,17 @@ def run_m2(
                 break
             if config.request_count is None and sent > 0 and monotonic_func() >= deadline:
                 break
+
+            # Open-loop pacing: dispatch request N at loop_start + N*interval,
+            # independent of how fast the backend is. This holds the arrival rate
+            # fixed, so a faster backend cannot silently do more work per minute
+            # (the closed-loop coupling found in the look-ahead investigation).
+            if config.arrival_interval_sec is not None:
+                wait = (loop_start + sent * config.arrival_interval_sec) - monotonic_func()
+                if wait > 0:
+                    sleep_func(wait)
+                if config.request_count is None and sent > 0 and monotonic_func() >= deadline:
+                    break
 
             sent += 1
             prompt_id = f"{config.prompt_id_prefix}-{mode}-{sent:06d}"
@@ -1006,6 +1026,7 @@ def _with_cli_overrides(config: M2Config, args: argparse.Namespace) -> M2Config:
         "duration_sec",
         "request_count",
         "interval_sec",
+        "arrival_interval_sec",
         "timeout_sec",
         "max_consecutive_failures",
         "prompt",
@@ -1036,6 +1057,7 @@ def main(argv: list[str] | None = None) -> None:
     run_parser.add_argument("--duration-sec", type=float, default=None)
     run_parser.add_argument("--request-count", type=int, default=None)
     run_parser.add_argument("--interval-sec", type=float, default=None)
+    run_parser.add_argument("--arrival-interval-sec", type=float, default=None)
     run_parser.add_argument("--timeout-sec", type=float, default=None)
     run_parser.add_argument("--prompt", default=None)
     run_parser.add_argument("--max-tokens", type=int, default=None)

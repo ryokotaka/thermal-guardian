@@ -166,6 +166,26 @@ What the experiment **showed**:
 Full evidence summary:
 [`docs/m2_full_fan_on_n5_results.md`](docs/m2_full_fan_on_n5_results.md).
 
+## Findings: thermal dynamics & look-ahead control
+
+I added a look-ahead variant of the controller (switch on *predicted* temperature,
+from the recent slope) to test whether the long thermal time constant makes
+anticipatory switching worthwhile. A pilot falsified the naive predictor — it
+flapped and switched ~18 °C below the band — so I bounded it (minimum samples, a
+cold-region floor, a capped predicted rise, reactive recovery). A cleaner
+reboot-pair run then produced a **counterexample**:
+
+> Early switching did not automatically lower thermal exposure. Because the load
+> generator is closed-loop ("send the next request immediately"), moving to the
+> faster Q4 path increased completed work in the same window — so the thermal
+> controller and the benchmark design were coupled. That reframed the question from
+> "can I switch earlier?" to "what workload model is fair for evaluating thermal
+> control?"
+
+These are single 10-minute pilot pairs (a design counterexample, not a tuned
+result). Full apparatus, data, and the next experiment (open-loop load) are in
+[`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+
 ## Try it locally (no Raspberry Pi needed)
 
 Local runs use fake backends, so you can explore the router on any machine.
@@ -281,10 +301,10 @@ to a specific evidence package.
 
 ## Roadmap / open questions
 
-- **Look-ahead control (active investigation):** the thermal time constant is
-  long — does switching on *predicted* temperature change overshoot and
-  time-above-threshold versus reactive control? Apparatus, protocol, and analysis
-  in [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+- **Fair thermal evaluation (next):** the look-ahead investigation surfaced a
+  benchmark/control coupling — a closed-loop load lets the faster backend do more
+  work — so re-run reactive vs look-ahead under an open-loop fixed arrival rate or
+  fixed request count. See [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?

@@ -129,6 +129,93 @@ def test_run_m2_posts_to_fixed_mode_url_and_writes_csvs(tmp_path) -> None:
     assert manifest["safety_stop"] is False
 
 
+def test_run_m2_open_loop_arrival_rate_paces_requests(tmp_path) -> None:
+    class FakeResponse:
+        status_code = 200
+
+        def __init__(self) -> None:
+            self.text = json.dumps({"model": "m", "usage": {"completion_tokens": 5}})
+
+        def json(self):
+            return {"model": "m", "usage": {"completion_tokens": 5}}
+
+    class FakeSession:
+        def post(self, url, json, headers, timeout):
+            return FakeResponse()
+
+    sleeps: list[float] = []
+    config = M2Config(
+        q4_url="http://127.0.0.1:8082",
+        request_count=3,
+        arrival_interval_sec=5.0,
+        prompt_id_prefix="rate",
+    )
+
+    run_m2(
+        config=config,
+        mode="q4_fixed",
+        output_dir=tmp_path,
+        session=FakeSession(),
+        monitor=FakeMonitor([MonitorSnapshot(0.0, 40.0, 1_500_000_000, "0x0")]),
+        background_telemetry=False,
+        now_func=lambda: 0.0,
+        monotonic_func=lambda: 0.0,
+        sleep_func=lambda s: sleeps.append(round(s, 3)),
+    )
+
+    # Request 1 dispatches at loop_start (no wait); 2 at +5 s; 3 at +10 s —
+    # independent of (instant) backend latency.
+    assert sleeps == [5.0, 10.0]
+
+
+def test_run_m2_open_loop_does_not_dispatch_past_duration(tmp_path) -> None:
+    class FakeResponse:
+        status_code = 200
+
+        def __init__(self) -> None:
+            self.text = json.dumps({"model": "m", "usage": {"completion_tokens": 5}})
+
+        def json(self):
+            return {"model": "m", "usage": {"completion_tokens": 5}}
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def post(self, url, json, headers, timeout):
+            self.calls += 1
+            return FakeResponse()
+
+    clock = {"t": 0.0}
+    session = FakeSession()
+    config = M2Config(
+        q4_url="http://127.0.0.1:8082",
+        duration_sec=6.0,
+        arrival_interval_sec=10.0,
+        prompt_id_prefix="rate",
+    )
+
+    result = run_m2(
+        config=config,
+        mode="q4_fixed",
+        output_dir=tmp_path,
+        session=session,
+        monitor=FakeMonitor([MonitorSnapshot(0.0, 40.0, 1_500_000_000, "0x0")]),
+        background_telemetry=False,
+        now_func=lambda: 0.0,
+        monotonic_func=lambda: clock["t"],
+        sleep_func=lambda s: clock.__setitem__("t", clock["t"] + s),
+    )
+
+    assert session.calls == 1
+    assert len(result.request_rows) == 1
+
+
+def test_m2_config_rejects_both_pacing_modes() -> None:
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        M2Config(interval_sec=1.0, arrival_interval_sec=5.0)
+
+
 def test_run_m2_records_request_failure_and_cli_exits_nonzero(monkeypatch, tmp_path) -> None:
     class FailingSession:
         def post(self, url, json, headers, timeout):
