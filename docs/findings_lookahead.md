@@ -148,6 +148,43 @@ What this honestly says:
   versus bounded look-ahead with matched start temperature and N >= 3, or use a
   controlled heating/cooling protocol focused only on switch timing.
 
+## Reboot-pair counterexample (2026-06-18)
+
+After a Raspberry Pi reboot, a cleaner cold-ish pair was run with the same
+10-minute duration and no manual power-meter step:
+
+```text
+data/m2/2026-06-18/lookahead/reboot_pair_002/reactive/
+data/m2/2026-06-18/lookahead/reboot_pair_002/bounded/
+data/m2/2026-06-18/lookahead/reboot_pair_002/reboot_pair_summary.json
+data/m2/2026-06-18/lookahead/reboot_pair_002/reboot_pair.svg
+```
+
+Observed data:
+
+| Run | Start temp | Requests | Switch events | First Q4 switch | Peak temp | Overshoot above 63 C | Seconds above 63 C | Throttle |
+| --- | ---: | ---: | --- | --- | ---: | ---: | ---: | --- |
+| `reactive` | 42.2 C | 147 | none | none | 63.1 C | 0.1 C | 0.0 s | `0x0` |
+| `bounded` | 43.9 C | 215 | `switch_to_q4=1` | 60.4 C | 65.3 C | 2.3 C | 350.1 s | `0x0` |
+
+What this honestly says:
+
+- In this pair, bounded look-ahead switched earlier, but that did **not** reduce
+  peak temperature or time above the threshold.
+- The bounded run completed many more requests because Q4 is faster in this
+  workload. With a closed-loop "send the next request immediately" benchmark,
+  switching to the faster backend can increase completed work during the same
+  wall-clock window, which can obscure or reverse the expected thermal benefit.
+- This is a useful counterexample, not a failure to hide: the control objective
+  and the benchmark objective are coupled.
+
+Next step if continuing this line:
+
+- For thermal-control evaluation, use an open-loop fixed arrival rate or fixed
+  request count, so Q4 does not automatically create more work per minute.
+- Keep the existing closed-loop results as throughput/energy evidence, but do
+  not use them alone to claim reduced thermal exposure from look-ahead control.
+
 ## Finding
 
 Results pending.
