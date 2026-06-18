@@ -29,9 +29,19 @@ and is any change worth the earlier loss of Q8 time? Either answer is a finding 
   slope over the last `slope_window` samples × the horizon). `0.0` = today's
   reactive routing behavior. See `src/thermal_guardian/controller.py` and its
   unit tests.
+- The predictive path is intentionally bounded after the first pilot:
+  - `look_ahead_min_samples` requires enough recent samples before prediction is
+    trusted.
+  - `look_ahead_min_temp_c` ignores prediction while the CPU is still far below
+    the switching band.
+  - `look_ahead_max_delta_c` caps how much prediction can add to the current
+    temperature.
+  - Q4 → Q8 recovery remains reactive on the actual temperature, so a positive
+    slope cannot force premature recovery.
 - Reactive config: `config.m2.fan_on.example.json` (no `look_ahead_sec` → 0).
 - Look-ahead config: `config.m2.fan_on.predictive.example.json`
-  (`look_ahead_sec: 30.0` — a **starting** horizon to sweep/tune, not a tuned value).
+  (`look_ahead_sec: 30.0` with bounded prediction — a **starting** horizon to
+  sweep/tune, not a tuned value).
 
 **Protocol** (fan on, same workload and duration as the M2 evaluation; repeat
 **N ≥ 3** per arm). Run the M2 `controller` workload twice with everything
@@ -66,6 +76,38 @@ Context to record after each analysis run (**data only, not a finding**):
 `tau_63_sec`, `time_to_up_sec`, `overshoot_c`, and `secs_above_up`. Do not turn
 these into a README claim until the reactive and look-ahead runs for this
 investigation have both been collected.
+
+## Pilot calibration note (2026-06-18)
+
+This is a calibration note, not a public README finding. A 10-minute pilot was
+run to test the first, naive look-ahead controller before scaling to N >= 3.
+
+Data location on the Pi:
+
+```text
+data/m2/2026-06-18/lookahead/reactive_001/
+data/m2/2026-06-18/lookahead/predictive_001/
+data/m2/2026-06-18/lookahead/lookahead_pilot_summary.json
+data/m2/2026-06-18/lookahead/lookahead_pilot.svg
+```
+
+Observed data:
+
+| Run | Requests | Switch events | First Q4 switch | Peak temp | Overshoot above 63 C | Seconds above 63 C | Throttle |
+| --- | ---: | --- | --- | ---: | ---: | ---: | --- |
+| `reactive_001` | 162 | `switch_to_q4=1` | 63.1 C | 65.3 C | 2.3 C | 125.5 s | `0x0` |
+| `predictive_001` naive | 190 | `switch_to_q4=9`, `switch_to_q8=8`, `cooldown_blocked=5` | 45.0 C | 64.8 C | 1.8 C | 277.2 s | `0x0` |
+
+What this honestly says:
+
+- The naive slope-only look-ahead controller was too sensitive to early thermal
+  slope and sensor noise.
+- It switched to Q4 far below the intended thermal band and produced repeated
+  Q8/Q4 oscillation.
+- Because that behavior was visible in one pilot, the N >= 3 comparison should
+  not be run with the naive controller.
+- The controller was revised to bounded, upward-only look-ahead before the next
+  experiment.
 
 ## Finding
 

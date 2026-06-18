@@ -21,3 +21,18 @@ def test_config_rejects_negative_look_ahead() -> None:
 def test_config_requires_slope_window_of_at_least_two() -> None:
     with pytest.raises(ValueError, match="slope_window"):
         RouterConfig(slope_window=1)
+
+
+def test_config_requires_look_ahead_min_samples_of_at_least_two() -> None:
+    with pytest.raises(ValueError, match="look_ahead_min_samples"):
+        RouterConfig(look_ahead_min_samples=1)
+
+
+def test_config_requires_look_ahead_min_samples_within_slope_window() -> None:
+    with pytest.raises(ValueError, match="look_ahead_min_samples"):
+        RouterConfig(slope_window=4, look_ahead_min_samples=5)
+
+
+def test_config_rejects_negative_look_ahead_max_delta() -> None:
+    with pytest.raises(ValueError, match="look_ahead_max_delta_c"):
+        RouterConfig(look_ahead_max_delta_c=-1.0)

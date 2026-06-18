@@ -8,7 +8,10 @@
   "temp_down_c": 59.0,
   "min_switch_interval_sec": 10.0,
   "look_ahead_sec": 30.0,
-  "slope_window": 5,
+  "slope_window": 10,
+  "look_ahead_min_samples": 10,
+  "look_ahead_min_temp_c": 59.0,
+  "look_ahead_max_delta_c": 3.0,
   "request_timeout_sec": 120.0,
   "log_dir": "logs",
   "dry_run": false

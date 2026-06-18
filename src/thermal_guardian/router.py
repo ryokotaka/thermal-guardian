@@ -51,6 +51,9 @@ class RouterRuntime:
                 min_switch_interval_sec=config.min_switch_interval_sec,
                 look_ahead_sec=config.look_ahead_sec,
                 slope_window=config.slope_window,
+                look_ahead_min_samples=config.look_ahead_min_samples,
+                look_ahead_min_temp_c=config.look_ahead_min_temp_c,
+                look_ahead_max_delta_c=config.look_ahead_max_delta_c,
             )
         )
         self.logger = logger or CsvLogger(config.log_dir)

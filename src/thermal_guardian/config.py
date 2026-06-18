@@ -20,6 +20,9 @@ class RouterConfig:
     min_switch_interval_sec: float = 10.0
     look_ahead_sec: float = 0.0
     slope_window: int = 5
+    look_ahead_min_samples: int = 5
+    look_ahead_min_temp_c: float = 0.0
+    look_ahead_max_delta_c: float = 3.0
     request_timeout_sec: float = 120.0
     log_dir: str = "logs"
     dry_run: bool = False
@@ -37,6 +40,12 @@ class RouterConfig:
             raise ValueError("look_ahead_sec must be non-negative")
         if self.slope_window < 2:
             raise ValueError("slope_window must be at least 2")
+        if self.look_ahead_min_samples < 2:
+            raise ValueError("look_ahead_min_samples must be at least 2")
+        if self.look_ahead_min_samples > self.slope_window:
+            raise ValueError("look_ahead_min_samples must be <= slope_window")
+        if self.look_ahead_max_delta_c < 0:
+            raise ValueError("look_ahead_max_delta_c must be non-negative")
         if self.request_timeout_sec <= 0:
             raise ValueError("request_timeout_sec must be positive")
 

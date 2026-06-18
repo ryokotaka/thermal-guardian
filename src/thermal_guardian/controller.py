@@ -27,9 +27,12 @@ class ControllerConfig:
     min_switch_interval_sec: float = 10.0
     # Look-ahead control: when > 0, switch on the temperature predicted
     # look_ahead_sec into the future (from the recent slope) instead of the
-    # current reading. 0.0 keeps the original reactive behavior exactly.
+    # current reading. 0.0 keeps the original reactive routing behavior.
     look_ahead_sec: float = 0.0
     slope_window: int = 5
+    look_ahead_min_samples: int = 5
+    look_ahead_min_temp_c: float = 0.0
+    look_ahead_max_delta_c: float = 3.0
 
     def __post_init__(self) -> None:
         if self.temp_down_c >= self.temp_up_c:
@@ -40,6 +43,12 @@ class ControllerConfig:
             raise ValueError("look_ahead_sec must be non-negative")
         if self.slope_window < 2:
             raise ValueError("slope_window must be at least 2")
+        if self.look_ahead_min_samples < 2:
+            raise ValueError("look_ahead_min_samples must be at least 2")
+        if self.look_ahead_min_samples > self.slope_window:
+            raise ValueError("look_ahead_min_samples must be <= slope_window")
+        if self.look_ahead_max_delta_c < 0:
+            raise ValueError("look_ahead_max_delta_c must be non-negative")
 
 
 @dataclass(frozen=True)
@@ -71,23 +80,28 @@ class ThermalController:
     def evaluate(self, snapshot: MonitorSnapshot) -> RouteDecision:
         previous = self._target
         self._record(snapshot)
-        effective_temp = self._decision_temp(snapshot)
-        temp_desc = self._describe_temp(snapshot.temp_c, effective_temp)
 
+        effective_temp = self._look_ahead_up_temp(snapshot)
         if self._target is RouteTarget.Q8 and effective_temp >= self.config.temp_up_c:
             return self._maybe_switch(
                 snapshot=snapshot,
                 next_target=RouteTarget.Q4,
                 event=RouteEvent.SWITCH_TO_Q4,
-                reason=f"{temp_desc} >= temp_up_c={self.config.temp_up_c:.1f}",
+                reason=(
+                    f"{self._describe_temp(snapshot.temp_c, effective_temp)} "
+                    f">= temp_up_c={self.config.temp_up_c:.1f}"
+                ),
             )
 
-        if self._target is RouteTarget.Q4 and effective_temp <= self.config.temp_down_c:
+        if self._target is RouteTarget.Q4 and snapshot.temp_c <= self.config.temp_down_c:
             return self._maybe_switch(
                 snapshot=snapshot,
                 next_target=RouteTarget.Q8,
                 event=RouteEvent.SWITCH_TO_Q8,
-                reason=f"{temp_desc} <= temp_down_c={self.config.temp_down_c:.1f}",
+                reason=(
+                    f"temp_c={snapshot.temp_c:.1f} "
+                    f"<= temp_down_c={self.config.temp_down_c:.1f}"
+                ),
             )
 
         return RouteDecision(
@@ -103,12 +117,19 @@ class ThermalController:
         if len(self._history) > self.config.slope_window:
             self._history = self._history[-self.config.slope_window :]
 
-    def _decision_temp(self, snapshot: MonitorSnapshot) -> float:
-        """Temperature used for the switch test: actual, or look-ahead prediction."""
-        if self.config.look_ahead_sec <= 0.0 or len(self._history) < 2:
+    def _look_ahead_up_temp(self, snapshot: MonitorSnapshot) -> float:
+        """Temperature used for Q8 -> Q4: actual, or bounded look-ahead."""
+        if self.config.look_ahead_sec <= 0.0:
+            return snapshot.temp_c
+        if len(self._history) < self.config.look_ahead_min_samples:
+            return snapshot.temp_c
+        if snapshot.temp_c < self.config.look_ahead_min_temp_c:
             return snapshot.temp_c
         slope = _temp_slope_per_sec(self._history)
-        return snapshot.temp_c + slope * self.config.look_ahead_sec
+        if slope <= 0.0:
+            return snapshot.temp_c
+        delta = min(slope * self.config.look_ahead_sec, self.config.look_ahead_max_delta_c)
+        return snapshot.temp_c + max(0.0, delta)
 
     def _describe_temp(self, actual: float, effective: float) -> str:
         if self.config.look_ahead_sec > 0.0 and effective != actual:
