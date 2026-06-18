@@ -211,3 +211,43 @@ are now in the harness — `--arrival-interval-sec` (fixed arrival rate, schedul
 dispatch) and the existing `--request-count` (equal total work). `analyze_lookahead.py`
 now also reports `completed_requests` per run, so the closed-loop coupling shows up in
 the numbers. The two controllers can now be compared with equal scheduled demand._
+
+## Open-loop harness smoke note (2026-06-19)
+
+After the Pi reboot, a short smoke test checked that `--arrival-interval-sec`
+works on the real device. This is apparatus validation, not a thermal-control
+finding.
+
+```text
+data/m2/2026-06-19/lookahead_open_loop_smoke_001/reactive/
+data/m2/2026-06-19/lookahead_open_loop_smoke_001/bounded/
+data/m2/2026-06-19/lookahead_open_loop_smoke_001/open_loop_smoke_summary.json
+data/m2/2026-06-19/lookahead_open_loop_smoke_001/open_loop_smoke.svg
+```
+
+Run settings:
+
+```text
+duration_sec = 300
+arrival_interval_sec = 5.0
+mode = controller
+cooling = fan_on
+```
+
+Observed data:
+
+| Run | Start temp | Completed requests | Tokens out | Switch events | Peak temp | Seconds above 63 C | Throttle |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| `reactive` | 47.2 C | 60 | 1620 | none | 60.9 C | 0.0 s | `0x0` |
+| `bounded` | 45.0 C | 60 | 1623 | `switch_to_q4=1`, `switch_to_q8=1`, `cooldown_blocked=3` | 60.9 C | 0.0 s | `0x0` |
+
+What this honestly says:
+
+- The open-loop harness did what it was supposed to do: both runs completed the
+  same number of scheduled requests in the same wall-clock window.
+- This removes the closed-loop confound where the faster Q4 backend silently
+  creates more completed work per minute.
+- The 5-minute smoke did not reach 63 C, so it does **not** compare thermal
+  control effectiveness. A real comparison needs a longer duration, a shorter
+  arrival interval, or a fixed request-count protocol that reaches the switching
+  band.
