@@ -207,8 +207,27 @@ Next step if continuing this line:
 
 ## Finding
 
-> _Author writes this from the run data. Not filled by the assistant._
+> I found a counterexample in my own follow-up experiment: early switching did not
+> automatically lower thermal exposure. Because my load generator was closed-loop,
+> moving to the faster Q4 path increased completed work, so the thermal controller
+> and benchmark design were coupled. That changed the next question from "can I
+> switch earlier?" to "what workload model is fair for evaluating thermal control?"
+
+_Evidence: the pilot, bounded-smoke, and reboot-pair tables above — single
+10-minute pairs with unmatched start temperatures. This is a counterexample about
+experiment design, not a tuned-magnitude claim._
 
 ## Implication
 
-> _Author writes this. Not filled by the assistant._
+> For thermal-control evaluation, use an open-loop fixed arrival rate or fixed
+> request count, so Q4 does not automatically create more work per minute. Keep the
+> existing closed-loop results as throughput/energy evidence, but do not use them
+> alone to claim reduced thermal exposure from look-ahead control.
+
+---
+
+_Apparatus update (assistant): the two open-loop modes this implication calls for
+are now in the harness — `--arrival-interval-sec` (fixed arrival rate, schedule-based
+dispatch) and the existing `--request-count` (equal total work). `analyze_lookahead.py`
+now also reports `completed_requests` per run, so the closed-loop coupling shows up in
+the numbers. Reactive vs look-ahead can be re-run fairly; the finding/claim stay yours._

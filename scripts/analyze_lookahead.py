@@ -159,6 +159,16 @@ def main() -> None:
         series = parse_telemetry(path)
         runs[label] = series
         derived[label] = derive(series, args.temp_up)
+        # Surface the closed-loop coupling: a faster backend completes more
+        # requests in the same window. Count them if requests.csv sits alongside.
+        req_path = Path(path).with_name("requests.csv")
+        if req_path.exists():
+            with open(req_path, newline="") as fp:
+                req_rows = list(csv.DictReader(fp))
+            derived[label]["completed_requests"] = len(req_rows)
+            derived[label]["tokens_out_total"] = sum(
+                int(r.get("tokens_out") or 0) for r in req_rows
+            )
 
     summary = {"temp_up_c": args.temp_up, "runs": derived}
     print(json.dumps(summary, indent=2))
