@@ -109,6 +109,45 @@ What this honestly says:
 - The controller was revised to bounded, upward-only look-ahead before the next
   experiment.
 
+## Bounded look-ahead smoke note (2026-06-18)
+
+After the naive pilot, the controller was changed to bounded upward look-ahead:
+
+```text
+look_ahead_sec = 30
+slope_window = 10
+look_ahead_min_samples = 10
+look_ahead_min_temp_c = 59
+look_ahead_max_delta_c = 3
+```
+
+One 10-minute smoke run was collected to check whether the obvious failure mode
+was removed before any longer comparison:
+
+```text
+data/m2/2026-06-18/lookahead/predictive_bounded_001/
+data/m2/2026-06-18/lookahead/lookahead_bounded_summary.json
+data/m2/2026-06-18/lookahead/lookahead_bounded.svg
+```
+
+Observed data:
+
+| Run | Requests | Switch events | First Q4 switch | Peak temp | Overshoot above 63 C | Seconds above 63 C | Throttle |
+| --- | ---: | --- | --- | ---: | ---: | ---: | --- |
+| `predictive_bounded_001` | 214 | `switch_to_q4=1` | 60.4 C | 65.9 C | 2.9 C | 476.8 s | `0x0` |
+
+What this honestly says:
+
+- The bounded controller removed the worst naive failure mode: it no longer
+  switched at 45 C and did not flap repeatedly in this 10-minute smoke run.
+- This smoke run does **not** show that bounded look-ahead is better than the
+  reactive controller on overshoot or time-above-threshold.
+- The start temperatures differed between runs, so these 10-minute pilots are
+  calibration evidence, not a final comparison.
+- If this line of work continues, the next experiment should compare reactive
+  versus bounded look-ahead with matched start temperature and N >= 3, or use a
+  controlled heating/cooling protocol focused only on switch timing.
+
 ## Finding
 
 Results pending.
