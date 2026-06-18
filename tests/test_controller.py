@@ -60,3 +60,40 @@ def test_cooldown_blocks_rapid_switch_back() -> None:
     assert blocked.event is RouteEvent.COOLDOWN_BLOCKED
     assert recovered.target is RouteTarget.Q8
     assert recovered.event is RouteEvent.SWITCH_TO_Q8
+
+
+def test_look_ahead_switches_before_actual_threshold() -> None:
+    controller = ThermalController(
+        ControllerConfig(temp_up_c=70.0, temp_down_c=60.0, look_ahead_sec=5.0)
+    )
+    # Rising 2 C/s. Reactively it would only switch at 70 C; with a 5 s
+    # look-ahead the prediction (62 + 2*5 = 72) crosses first, so it switches
+    # while the actual reading is still well below 70.
+    controller.evaluate(snapshot(0.0, 60.0))
+    early = controller.evaluate(snapshot(1.0, 62.0))
+
+    assert early.target is RouteTarget.Q4
+    assert early.event is RouteEvent.SWITCH_TO_Q4
+    assert early.snapshot.temp_c < 70.0
+
+
+def test_reactive_default_waits_for_actual_threshold() -> None:
+    controller = ThermalController(ControllerConfig(temp_up_c=70.0, temp_down_c=60.0))
+    # Same rising sequence, but look_ahead_sec=0 (default): no early switch.
+    controller.evaluate(snapshot(0.0, 60.0))
+    controller.evaluate(snapshot(1.0, 62.0))
+    decision = controller.evaluate(snapshot(2.0, 64.0))
+
+    assert decision.target is RouteTarget.Q8
+    assert decision.event is RouteEvent.NONE
+
+
+def test_look_ahead_needs_two_samples_before_predicting() -> None:
+    controller = ThermalController(
+        ControllerConfig(temp_up_c=70.0, temp_down_c=60.0, look_ahead_sec=10.0)
+    )
+    # Only one sample so far: no slope yet, so no premature switch.
+    decision = controller.evaluate(snapshot(0.0, 64.0))
+
+    assert decision.target is RouteTarget.Q8
+    assert decision.event is RouteEvent.NONE
