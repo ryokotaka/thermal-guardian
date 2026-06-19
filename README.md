@@ -182,9 +182,17 @@ reboot-pair run then produced a **counterexample**:
 > "can I switch earlier?" to "what workload model is fair for evaluating thermal
 > control?"
 
-These are pilot pairs (design counterexamples and early open-loop follow-up, not a
-tuned result). Full apparatus, data summaries, and the next validation step are in
-[`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+I then re-ran the comparison with a fixed scheduled demand
+(`arrival_interval_sec=4.0`, 150 completed requests per run). In an **N=3
+open-loop pilot**, bounded look-ahead stayed below 63 C in 3/3 runs, while the
+reactive controller exceeded 63 C in 3/3 runs. Median peak temperature was 63.7 C
+for reactive vs 62.0 C for bounded look-ahead; median time at or above 63 C was
+207.1 s vs 0.0 s.
+
+This is still a pilot, not a tuned result: the bounded controller switched often
+(median 18 `switch_to_q4` events per run), and output quality / long-run
+stability were not evaluated. Full apparatus, data summaries, and the next
+validation step are in [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 
 ## Try it locally (no Raspberry Pi needed)
 

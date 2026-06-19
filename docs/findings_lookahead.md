@@ -253,7 +253,7 @@ What this honestly says:
   band.
 
 
-## Open-loop 4-second pilot note (2026-06-19)
+## Open-loop 4-second N=1 pilot note (2026-06-19)
 
 A stronger open-loop pilot used a 4-second scheduled arrival interval for 10
 minutes. This is the first run in this branch that both holds completed work
@@ -295,3 +295,58 @@ What this honestly says:
 - This is promising enough to repeat, but not enough to claim a general effect.
   The next validation step is N>=3 with the same 4-second open-loop protocol and
   similar starting temperatures.
+
+## Open-loop 4-second N=3 pilot follow-up (2026-06-19)
+
+The N=1 pilot was repeated twice more under the same scheduled-demand protocol.
+This gives an N=3 pilot, not a final long-run claim.
+
+```text
+data/m2/2026-06-19/lookahead_open_loop_10min_4s_001/
+data/m2/2026-06-19/lookahead_open_loop_10min_4s_002/
+data/m2/2026-06-19/lookahead_open_loop_10min_4s_003/
+data/m2/2026-06-19/lookahead_open_loop_10min_4s_n3/n3_summary.json
+docs/assets/lookahead_open_loop_4s_n3_summary.svg
+```
+
+Run settings:
+
+```text
+duration_sec = 600
+arrival_interval_sec = 4.0
+completed_requests = 150 per run
+mode = controller
+cooling = fan_on
+bounded look-ahead = 30 sec horizon, min_temp_c=59, max_delta_c=3
+```
+
+Observed data:
+
+| Pair | Mode | Start temp | Completed requests | Tokens out | First switch | Peak temp | Seconds above 63 C | Switches to Q4 | Throttle |
+| ---: | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- |
+| 1 | `reactive` | 48.8 C | 150 | 4119 | 63.1 C | 64.8 C | 93.2 s | 1 | `0x0` |
+| 1 | `bounded` | 48.3 C | 150 | 4230 | 60.4 C | 62.0 C | 0.0 s | 19 | `0x0` |
+| 2 | `reactive` | 48.3 C | 150 | 4107 | 63.1 C | 63.7 C | 265.7 s | 3 | `0x0` |
+| 2 | `bounded` | 45.0 C | 150 | 4218 | 60.4 C | 62.0 C | 0.0 s | 18 | `0x0` |
+| 3 | `reactive` | 47.2 C | 150 | 4137 | 63.1 C | 63.7 C | 207.1 s | 4 | `0x0` |
+| 3 | `bounded` | 47.2 C | 150 | 4152 | 61.5 C | 62.6 C | 0.0 s | 11 | `0x0` |
+
+Median summary:
+
+| Mode | N | Completed requests | Median peak temp | Median seconds above 63 C | Median Q4 switches | Throttle |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `reactive` | 3 | 150 | 63.7 C | 207.1 s | 3 | `0x0` |
+| `bounded` | 3 | 150 | 62.0 C | 0.0 s | 18 | `0x0` |
+
+![Open-loop 4-second N=3 summary](assets/lookahead_open_loop_4s_n3_summary.svg)
+
+What this honestly says:
+
+- With the same completed request count, the bounded look-ahead controller stayed
+  below 63 C in 3/3 runs; the reactive controller exceeded 63 C in 3/3 runs.
+- This is now a stronger candidate finding than the N=1 result, because the
+  direction repeated across three pilot pairs.
+- It is not a final claim yet. One bounded run started cooler than its paired
+  reactive run, and the bounded controller switched often. The next engineering
+  question is whether the same effect survives cleaner start-temperature matching
+  and a less chatty controller policy.

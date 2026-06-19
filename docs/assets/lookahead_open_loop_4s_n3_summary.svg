@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" font-family="Arial, Helvetica, sans-serif">
+<rect width="1120" height="560" fill="#f6f8f8"/>
+<text x="44" y="48" font-size="25" font-weight="700" fill="#16241f">N=3 open-loop look-ahead pilot on Raspberry Pi 5</text>
+<text x="44" y="78" font-size="14" fill="#56635f">10 min runs, fan on, fixed scheduled demand: 4 sec arrival interval, 150 completed requests per run.</text>
+<rect x="44" y="96" width="1032" height="50" rx="8" fill="#eef5ff" stroke="#c9dcff"/>
+<text x="66" y="127" font-size="15" fill="#223f70"><tspan font-weight="700">Pilot result:</tspan> bounded look-ahead stayed below 63 C in 3/3 runs, while reactive exceeded 63 C in 3/3 runs. Not a final claim.</text>
+<rect x="45" y="100" width="500" height="340" rx="10" fill="#ffffff" stroke="#dde5e2"/>
+<rect x="615" y="100" width="450" height="340" rx="10" fill="#ffffff" stroke="#dde5e2"/>
+<text x="70" y="128" font-size="19" font-weight="700" fill="#16241f">Median peak temperature</text>
+<text x="640" y="128" font-size="19" font-weight="700" fill="#16241f">Median seconds at or above 63 C</text>
+<line x1="80" y1="420.0" x2="520" y2="420.0" stroke="#eef2f0"/>
+<text x="70" y="424.0" text-anchor="end" font-size="11" fill="#7b8783">0</text>
+<line x1="80" y1="337.1" x2="520" y2="337.1" stroke="#eef2f0"/>
+<text x="70" y="341.1" text-anchor="end" font-size="11" fill="#7b8783">20</text>
+<line x1="80" y1="254.3" x2="520" y2="254.3" stroke="#eef2f0"/>
+<text x="70" y="258.3" text-anchor="end" font-size="11" fill="#7b8783">40</text>
+<line x1="80" y1="171.4" x2="520" y2="171.4" stroke="#eef2f0"/>
+<text x="70" y="175.4" text-anchor="end" font-size="11" fill="#7b8783">60</text>
+<line x1="80" y1="130.0" x2="520" y2="130.0" stroke="#eef2f0"/>
+<text x="70" y="134.0" text-anchor="end" font-size="11" fill="#7b8783">70</text>
+<line x1="80" y1="159.0" x2="520" y2="159.0" stroke="#c9882f" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="520" y="153.0" text-anchor="end" font-size="12" fill="#a96f1f">63 C threshold</text>
+<rect x="175" y="156.1" width="110" height="263.9" rx="6" fill="#9aa6b2"/>
+<text x="230.0" y="146.1" text-anchor="middle" font-size="17" font-weight="700" fill="#16241f">63.7 C</text>
+<text x="230.0" y="446" text-anchor="middle" font-size="14" font-weight="700" fill="#45524f">reactive</text>
+<rect x="345" y="163.1" width="110" height="256.9" rx="6" fill="#3f72d4"/>
+<text x="400.0" y="153.1" text-anchor="middle" font-size="17" font-weight="700" fill="#16241f">62.0 C</text>
+<text x="400.0" y="446" text-anchor="middle" font-size="14" font-weight="700" fill="#45524f">bounded look-ahead</text>
+<line x1="650" y1="420.0" x2="1040" y2="420.0" stroke="#eef2f0"/>
+<text x="640" y="424.0" text-anchor="end" font-size="11" fill="#7b8783">0</text>
+<line x1="650" y1="323.3" x2="1040" y2="323.3" stroke="#eef2f0"/>
+<text x="640" y="327.3" text-anchor="end" font-size="11" fill="#7b8783">100</text>
+<line x1="650" y1="226.7" x2="1040" y2="226.7" stroke="#eef2f0"/>
+<text x="640" y="230.7" text-anchor="end" font-size="11" fill="#7b8783">200</text>
+<line x1="650" y1="130.0" x2="1040" y2="130.0" stroke="#eef2f0"/>
+<text x="640" y="134.0" text-anchor="end" font-size="11" fill="#7b8783">300</text>
+<rect x="725" y="219.8" width="110" height="200.2" rx="6" fill="#9aa6b2"/>
+<text x="780.0" y="209.8" text-anchor="middle" font-size="17" font-weight="700" fill="#16241f">207.1s</text>
+<text x="780.0" y="446" text-anchor="middle" font-size="14" font-weight="700" fill="#45524f">reactive</text>
+<rect x="885" y="419.0" width="110" height="1.0" rx="6" fill="#3f72d4"/>
+<text x="940.0" y="409.0" text-anchor="middle" font-size="17" font-weight="700" fill="#16241f">0.0s</text>
+<text x="940.0" y="446" text-anchor="middle" font-size="14" font-weight="700" fill="#45524f">bounded look-ahead</text>
+<rect x="44" y="468" width="220" height="34" rx="17" fill="#eef2f0"/>
+<text x="154" y="490" text-anchor="middle" font-size="14" fill="#3d4a46">3 pairs x 10 min</text>
+<rect x="278" y="468" width="250" height="34" rx="17" fill="#eef2f0"/>
+<text x="403" y="490" text-anchor="middle" font-size="14" fill="#3d4a46">150 requests each run</text>
+<rect x="542" y="468" width="230" height="34" rx="17" fill="#eef2f0"/>
+<text x="657" y="490" text-anchor="middle" font-size="14" fill="#3d4a46">0 throttling</text>
+<rect x="786" y="468" width="290" height="34" rx="17" fill="#fff3df"/>
+<text x="931" y="490" text-anchor="middle" font-size="14" fill="#7c530e">bounded switches often: median 18 Q4 switches</text>
+<text x="44" y="532" font-size="12" fill="#7c8783">Values are medians across N=3 pilot pairs. Output quality and long-run stability were not evaluated.</text>
+</svg>
