@@ -18,6 +18,7 @@ class RouteEvent(str, Enum):
     SWITCH_TO_Q4 = "switch_to_q4"
     SWITCH_TO_Q8 = "switch_to_q8"
     COOLDOWN_BLOCKED = "cooldown_blocked"
+    RESIDENCE_BLOCKED = "residence_blocked"
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class ControllerConfig:
     temp_up_c: float = 70.0
     temp_down_c: float = 60.0
     min_switch_interval_sec: float = 10.0
+    min_residence_sec: float = 0.0
     # Look-ahead control: when > 0, switch on the temperature predicted
     # look_ahead_sec into the future (from the recent slope) instead of the
     # current reading. 0.0 keeps the original reactive routing behavior.
@@ -39,6 +41,8 @@ class ControllerConfig:
             raise ValueError("temp_down_c must be lower than temp_up_c")
         if self.min_switch_interval_sec < 0:
             raise ValueError("min_switch_interval_sec must be non-negative")
+        if self.min_residence_sec < 0:
+            raise ValueError("min_residence_sec must be non-negative")
         if self.look_ahead_sec < 0:
             raise ValueError("look_ahead_sec must be non-negative")
         if self.slope_window < 2:
@@ -71,6 +75,7 @@ class ThermalController:
         self.config = config or ControllerConfig()
         self._target = initial_target
         self._last_switch_ts: float | None = None
+        self._target_entered_ts: float | None = None
         self._history: list[tuple[float, float]] = []
 
     @property
@@ -148,6 +153,17 @@ class ThermalController:
         reason: str,
     ) -> RouteDecision:
         previous = self._target
+        if not self._residence_elapsed(snapshot.ts):
+            return RouteDecision(
+                target=self._target,
+                previous_target=previous,
+                event=RouteEvent.RESIDENCE_BLOCKED,
+                reason=(
+                    f"{reason}; residence remaining after entering "
+                    f"{self._target.value} at {self._target_entered_ts:.3f}"
+                ),
+                snapshot=snapshot,
+            )
         if not self._cooldown_elapsed(snapshot.ts):
             return RouteDecision(
                 target=self._target,
@@ -162,6 +178,7 @@ class ThermalController:
 
         self._target = next_target
         self._last_switch_ts = snapshot.ts
+        self._target_entered_ts = snapshot.ts
         return RouteDecision(
             target=self._target,
             previous_target=previous,
@@ -175,6 +192,12 @@ class ThermalController:
             return True
         elapsed = max(0.0, ts - self._last_switch_ts)
         return elapsed >= self.config.min_switch_interval_sec
+
+    def _residence_elapsed(self, ts: float) -> bool:
+        if self._target_entered_ts is None:
+            return True
+        elapsed = max(0.0, ts - self._target_entered_ts)
+        return elapsed >= self.config.min_residence_sec
 
 
 def _temp_slope_per_sec(history: list[tuple[float, float]]) -> float:

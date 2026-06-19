@@ -62,6 +62,42 @@ def test_cooldown_blocks_rapid_switch_back() -> None:
     assert recovered.event is RouteEvent.SWITCH_TO_Q8
 
 
+def test_min_residence_blocks_leaving_current_target_too_soon() -> None:
+    controller = ThermalController(
+        ControllerConfig(
+            temp_up_c=70.0,
+            temp_down_c=60.0,
+            min_switch_interval_sec=0.0,
+            min_residence_sec=30.0,
+        )
+    )
+    controller.evaluate(snapshot(100.0, 72.0))
+
+    blocked = controller.evaluate(snapshot(120.0, 55.0))
+    recovered = controller.evaluate(snapshot(130.0, 55.0))
+
+    assert blocked.target is RouteTarget.Q4
+    assert blocked.event is RouteEvent.RESIDENCE_BLOCKED
+    assert recovered.target is RouteTarget.Q8
+    assert recovered.event is RouteEvent.SWITCH_TO_Q8
+
+
+def test_default_min_residence_preserves_reactive_switching() -> None:
+    controller = ThermalController(
+        ControllerConfig(
+            temp_up_c=70.0,
+            temp_down_c=60.0,
+            min_switch_interval_sec=0.0,
+        )
+    )
+    controller.evaluate(snapshot(100.0, 72.0))
+
+    recovered = controller.evaluate(snapshot(101.0, 55.0))
+
+    assert recovered.target is RouteTarget.Q8
+    assert recovered.event is RouteEvent.SWITCH_TO_Q8
+
+
 def test_look_ahead_switches_before_actual_threshold() -> None:
     controller = ThermalController(
         ControllerConfig(
