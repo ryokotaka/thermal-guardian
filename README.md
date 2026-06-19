@@ -189,6 +189,8 @@ reactive controller exceeded 63 C in 3/3 runs. Median peak temperature was 63.7 
 for reactive vs 62.0 C for bounded look-ahead; median time at or above 63 C was
 207.1 s vs 0.0 s.
 
+![N=3 open-loop look-ahead pilot: with completed work held equal, median peak 62.0 vs 63.7 °C and 0 vs 207 s above the 63 °C threshold](docs/assets/lookahead_open_loop_4s_n3_summary.svg)
+
 This is still a pilot, not a tuned result: the bounded controller switched often
 (median 18 `switch_to_q4` events per run), and output quality / long-run
 stability were not evaluated. Full apparatus, data summaries, and the next
@@ -309,10 +311,12 @@ to a specific evidence package.
 
 ## Roadmap / open questions
 
-- **Fair thermal evaluation (next):** the look-ahead investigation surfaced a
-  benchmark/control coupling — a closed-loop load lets the faster backend do more
-  work — so re-run reactive vs look-ahead under an open-loop fixed arrival rate or
-  fixed request count. See [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+- **Validate look-ahead (next):** the open-loop N=3 pilot suggests bounded
+  look-ahead keeps the CPU below the threshold — but with much more Q4 time, a
+  chatty switch policy, and unmatched start temperatures. Confirm with matched
+  starts, a calmer policy, and a control for total Q4 time (e.g. versus a
+  lower-threshold reactive controller). See
+  [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?
