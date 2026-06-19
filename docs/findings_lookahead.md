@@ -7,6 +7,11 @@
 > not write them. Once the finding is backed by reproducible data, lift it into a
 > `## Findings` section of the README.
 
+**Status (2026-06-19):** open-loop N=3 pilot complete — bounded look-ahead stayed
+below 63 °C in 3/3 runs vs 0/3 for reactive (pilot, not a final claim). The
+synthesized conclusion is in **Finding** / **Implication** at the end of this doc;
+the sections in between are the chronological run log.
+
 ## Question
 
 Heat has a long time constant — unlike an injected-load fault, which is close to a
@@ -205,25 +210,6 @@ Next step if continuing this line:
 - Keep the existing closed-loop results as throughput/energy evidence, but do
   not use them alone to claim reduced thermal exposure from look-ahead control.
 
-## Finding
-
-> I found a counterexample in my own follow-up experiment: early switching did not
-> automatically lower thermal exposure. Because my load generator was closed-loop,
-> moving to the faster Q4 path increased completed work, so the thermal controller
-> and benchmark design were coupled. That changed the next question from "can I
-> switch earlier?" to "what workload model is fair for evaluating thermal control?"
-
-_Evidence: the pilot, bounded-smoke, and reboot-pair tables above — single
-10-minute pairs with unmatched start temperatures. This is a counterexample about
-experiment design, not a tuned-magnitude claim._
-
-## Implication
-
-> For thermal-control evaluation, use an open-loop fixed arrival rate or fixed
-> request count, so Q4 does not automatically create more work per minute. Keep the
-> existing closed-loop results as throughput/energy evidence, but do not use them
-> alone to claim reduced thermal exposure from look-ahead control.
-
 ---
 
 _Apparatus update (assistant): the two open-loop modes this implication calls for
@@ -370,3 +356,32 @@ What this honestly says:
   reactive run, and the bounded controller switched often. The next engineering
   question is whether the same effect survives cleaner start-temperature matching
   and a less chatty controller policy.
+
+## Finding
+
+This investigation produced two results, in order.
+
+**1 — A methodology counterexample.** Early switching did not automatically lower
+thermal exposure. Because the load generator was closed-loop ("send the next
+request immediately"), moving to the faster Q4 path increased completed work in the
+same window — so the thermal controller and the benchmark design were coupled. The
+question changed from "can I switch earlier?" to "what workload model is fair for
+evaluating thermal control?"
+
+**2 — Under a fair (open-loop) load, look-ahead looks promising.** With completed
+work held equal (`arrival_interval_sec=4.0`, 150 requests per run), an N=3 pilot
+showed bounded look-ahead stayed below 63 °C in 3/3 runs while the reactive
+controller exceeded it in 3/3 (median peak 62.0 vs 63.7 °C; median time ≥63 °C
+0.0 vs 207.1 s). This is a pilot, not a final claim: the bounded controller
+switched often (median 18×), start temperatures were not matched, and output
+quality / long-run stability were not evaluated.
+
+## Implication
+
+- Evaluate thermal control under an open-loop load (fixed arrival rate or request
+  count). The earlier closed-loop runs remain valid only as throughput / energy
+  evidence, not as evidence of reduced thermal exposure.
+- The look-ahead benefit is not yet isolated from simply spending more time on the
+  cooler Q4 model. The next test should control for total Q4 time (e.g. against a
+  lower-threshold reactive controller), match start temperatures, and calm the
+  switch policy before this becomes a firm claim.

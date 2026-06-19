@@ -2,8 +2,7 @@
 <rect width="1120" height="560" fill="#f6f8f8"/>
 <text x="44" y="48" font-size="25" font-weight="700" fill="#16241f">N=3 open-loop look-ahead pilot on Raspberry Pi 5</text>
 <text x="44" y="78" font-size="14" fill="#56635f">10 min runs, fan on, fixed scheduled demand: 4 sec arrival interval, 150 completed requests per run.</text>
-<rect x="44" y="96" width="1032" height="50" rx="8" fill="#eef5ff" stroke="#c9dcff"/>
-<text x="66" y="127" font-size="15" fill="#223f70"><tspan font-weight="700">Pilot result:</tspan> bounded look-ahead stayed below 63 C in 3/3 runs, while reactive exceeded 63 C in 3/3 runs. Not a final claim.</text>
+<text x="44" y="94" font-size="13" fill="#28406e"><tspan font-weight="700">Pilot result:</tspan> bounded look-ahead stayed below 63 C in 3/3 runs; reactive exceeded 63 C in 3/3. Not a final claim.</text>
 <rect x="45" y="100" width="500" height="340" rx="10" fill="#ffffff" stroke="#dde5e2"/>
 <rect x="615" y="100" width="450" height="340" rx="10" fill="#ffffff" stroke="#dde5e2"/>
 <text x="70" y="128" font-size="19" font-weight="700" fill="#16241f">Median peak temperature</text>
