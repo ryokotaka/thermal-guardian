@@ -385,3 +385,58 @@ quality / long-run stability were not evaluated.
   cooler Q4 model. The next test should control for total Q4 time (e.g. against a
   lower-threshold reactive controller), match start temperatures, and calm the
   switch policy before this becomes a firm claim.
+
+## Q4-time matched counterfactual protocol
+
+The next check should separate two explanations:
+
+1. bounded look-ahead helped because it switched **earlier**, or
+2. bounded look-ahead helped mainly because it spent **more total time on Q4**.
+
+To test that, keep the bounded look-ahead runs fixed and add reactive-controller
+arms with lower thresholds:
+
+```text
+reactive_up61_down59
+reactive_up60_down58
+reactive_up59_down57
+```
+
+Run each candidate once with the same open-loop protocol:
+
+```text
+duration_sec = 600
+arrival_interval_sec = 4.0
+mode = controller
+cooling = fan_on
+```
+
+Then choose the reactive candidate whose `q4_time_sec` is closest to the bounded
+look-ahead median. Only that selected candidate needs to be extended to N=3. The
+comparison is:
+
+```text
+same-ish Q4 residence time -> compare peak temp, seconds >= 63 C, and switches
+```
+
+Analysis helper:
+
+```bash
+python scripts/analyze_q4_budget_match.py --temp-up 63 \
+  --run bounded_001=data/m2/DATE/lookahead_open_loop_10min_4s_001/bounded \
+  --run bounded_002=data/m2/DATE/lookahead_open_loop_10min_4s_002/bounded \
+  --run bounded_003=data/m2/DATE/lookahead_open_loop_10min_4s_003/bounded \
+  --run reactive_up61_down59_001=data/m2/DATE/q4_budget_match/reactive_up61_down59_001 \
+  --run reactive_up60_down58_001=data/m2/DATE/q4_budget_match/reactive_up60_down58_001 \
+  --run reactive_up59_down57_001=data/m2/DATE/q4_budget_match/reactive_up59_down57_001 \
+  --out-json data/m2/DATE/q4_budget_match/q4_budget_match_summary.json \
+  --out-csv data/m2/DATE/q4_budget_match/q4_budget_match_summary.csv
+```
+
+Interpretation stays conservative:
+
+- if matched reactive suppresses temperature similarly, Q4 time allocation may be
+  the main factor;
+- if bounded is still cooler at similar Q4 time, earlier timing may matter;
+- if matched reactive has fewer switches, bounded look-ahead's next engineering
+  issue is switch chatter, not raw thermal response.
