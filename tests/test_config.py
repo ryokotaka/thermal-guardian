@@ -13,6 +13,11 @@ def test_config_requires_hysteresis_gap() -> None:
         RouterConfig(temp_up_c=60.0, temp_down_c=60.0)
 
 
+def test_config_rejects_negative_min_residence() -> None:
+    with pytest.raises(ValueError, match="min_residence_sec"):
+        RouterConfig(min_residence_sec=-1.0)
+
+
 def test_config_rejects_negative_look_ahead() -> None:
     with pytest.raises(ValueError, match="look_ahead_sec"):
         RouterConfig(look_ahead_sec=-1.0)
