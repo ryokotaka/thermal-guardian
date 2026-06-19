@@ -182,8 +182,8 @@ reboot-pair run then produced a **counterexample**:
 > "can I switch earlier?" to "what workload model is fair for evaluating thermal
 > control?"
 
-These are single 10-minute pilot pairs (a design counterexample, not a tuned
-result). Full apparatus, data, and the next experiment (open-loop load) are in
+These are pilot pairs (design counterexamples and early open-loop follow-up, not a
+tuned result). Full apparatus, data summaries, and the next validation step are in
 [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 
 ## Try it locally (no Raspberry Pi needed)
