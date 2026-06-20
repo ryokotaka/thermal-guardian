@@ -497,3 +497,46 @@ compare against the Q4-budget-matched runs above
 The result should be reported even if it fails. A successful pilot would motivate
 N=3; an unsuccessful one would simply say that minimum residence did not improve
 this controller under the tested settings.
+
+### Single-run pilot: bounded look-ahead + 120 s Q4 residence (2026-06-20)
+
+I ran one 10-minute open-loop pilot after adding `min_residence_sec=120.0` to the
+bounded look-ahead controller. This is **not** enough for a new README claim; it is
+a directional check for whether the next round is worth running.
+
+```text
+duration_sec = 600
+arrival_interval_sec = 4.0
+completed_requests = 150
+look_ahead_sec = 30
+min_residence_sec = 120
+start_temp_c = 47.2
+throttled_hex = 0x0
+git_commit = 7f18082c0c64df3121230898a3991c94c9bc933b
+```
+
+Observed result:
+
+| Run | Peak temp | Seconds >= 63 C | Q4 time | Q4 fraction | Q4 switches | Q8 switches | Residence blocks |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `bounded_dwell120_001` | 62.0 C | 0.0 s | 376.8 s | 0.628 | 4 | 3 | 110 |
+
+Evidence: `data/m2/2026-06-20/min_residence/bounded_dwell120_001`, archived as
+`data/m2/2026-06-20/artifacts/min_residence_bounded_dwell120_001_2026-06-20.tar.gz`
+(SHA-256 `9e15650bea2275c5388e0fb02466dcce9edbc7a3c519626176cc6cb1d87da440`).
+
+What this honestly says:
+
+- The minimum-residence guard did what it was designed to do: transitions dropped
+  from the earlier bounded median of 36 total switches to 7 total switches in
+  this pilot.
+- The run stayed below 63 C and completed all 150 requests with no throttling or
+  safety stop.
+- It used much more Q4 time than the Q4-budget-matched comparison (376.8 s here
+  vs 226.7 s for bounded look-ahead and 235.3 s for matched reactive). Therefore
+  this does **not** prove that dwell gets the same thermal result at the same Q4
+  budget.
+
+The next useful experiment is a smaller residence sweep, for example 30 s, 60 s,
+and 90 s, looking for the shortest residence period that materially reduces
+switching without greatly increasing Q4 time.
