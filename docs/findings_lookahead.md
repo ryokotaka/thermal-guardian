@@ -540,6 +540,8 @@ start gate = temp <= 50 C and throttled_hex == 0x0
 | dwell 90 s | 1 | 0.714 | 428.4 s | 9 | 106 | 60.9 C | 0.0 s |
 | dwell 120 s | 1 | 0.628 | 376.8 s | 7 | 110 | 62.0 C | 0.0 s |
 
+![Minimum-residence dwell sweep: total switches fall from 36 to 7 only as the Q4 residence fraction rises (0.378 up to 0.714); the 30 s point crossed 63 C. N=3 at 0 s and 60 s, N=1 otherwise.](assets/lookahead_dwell_sweep.svg)
+
 Evidence:
 
 - `data/m2/2026-06-20/min_residence_tradeoff_5pt_with_dwell60_n3.csv`

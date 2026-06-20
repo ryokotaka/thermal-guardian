@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="608" viewBox="0 0 1120 608" font-family="Arial, Helvetica, sans-serif">
+<rect width="1120" height="608" fill="#f6f8f8"/>
+<text x="44" y="48" font-size="25" font-weight="700" fill="#16241f">Minimum-residence (dwell): switch economy trades against Q4 time</text>
+<text x="44" y="78" font-size="14" fill="#56635f">Raspberry Pi 5 &#183; bounded look-ahead &#183; 10-min open-loop (4 s arrival, 150 req) &#183; gated start (&lt;= 50 &#176;C, 0x0).</text>
+<text x="44" y="106" font-size="13.5" fill="#28406e"><tspan font-weight="700">Reading:</tspan> switches fall (36 &#8594; 7) only as Q4 residence rises &#8212; a trade-off, not a free win. Noisy (mostly N=1); no clean optimum.</text>
+<rect x="44" y="134" width="506" height="374" rx="12" fill="#ffffff" stroke="#dde5e2"/>
+<rect x="570" y="134" width="506" height="374" rx="12" fill="#ffffff" stroke="#dde5e2"/>
+<text x="74" y="164" font-size="18" font-weight="700" fill="#16241f">Total switches per run</text>
+<text x="534" y="164" text-anchor="end" font-size="11" fill="#8a948f">fewer = less flapping</text>
+<text x="600" y="164" font-size="18" font-weight="700" fill="#16241f">Q4 residence fraction</text>
+<text x="1060" y="164" text-anchor="end" font-size="11" fill="#8a948f">higher = more time on Q4</text>
+<line x1="86" y1="436.0" x2="534" y2="436.0" stroke="#eef2f0"/>
+<text x="78" y="440.0" text-anchor="end" font-size="11" fill="#7b8783">0</text>
+<line x1="86" y1="376.0" x2="534" y2="376.0" stroke="#eef2f0"/>
+<text x="78" y="380.0" text-anchor="end" font-size="11" fill="#7b8783">10</text>
+<line x1="86" y1="316.0" x2="534" y2="316.0" stroke="#eef2f0"/>
+<text x="78" y="320.0" text-anchor="end" font-size="11" fill="#7b8783">20</text>
+<line x1="86" y1="256.0" x2="534" y2="256.0" stroke="#eef2f0"/>
+<text x="78" y="260.0" text-anchor="end" font-size="11" fill="#7b8783">30</text>
+<line x1="86" y1="196.0" x2="534" y2="196.0" stroke="#eef2f0"/>
+<text x="78" y="200.0" text-anchor="end" font-size="11" fill="#7b8783">40</text>
+<line x1="628" y1="436.0" x2="1060" y2="436.0" stroke="#eef2f0"/>
+<text x="620" y="440.0" text-anchor="end" font-size="11" fill="#7b8783">0.0</text>
+<line x1="628" y1="376.0" x2="1060" y2="376.0" stroke="#eef2f0"/>
+<text x="620" y="380.0" text-anchor="end" font-size="11" fill="#7b8783">0.2</text>
+<line x1="628" y1="316.0" x2="1060" y2="316.0" stroke="#eef2f0"/>
+<text x="620" y="320.0" text-anchor="end" font-size="11" fill="#7b8783">0.4</text>
+<line x1="628" y1="256.0" x2="1060" y2="256.0" stroke="#eef2f0"/>
+<text x="620" y="260.0" text-anchor="end" font-size="11" fill="#7b8783">0.6</text>
+<line x1="628" y1="196.0" x2="1060" y2="196.0" stroke="#eef2f0"/>
+<text x="620" y="200.0" text-anchor="end" font-size="11" fill="#7b8783">0.8</text>
+<rect x="100.8" y="220.0" width="60" height="216.0" rx="5" fill="#3f72d4"/>
+<text x="130.8" y="208.0" text-anchor="middle" font-size="16" font-weight="700" fill="#16241f">36</text>
+<rect x="190.4" y="334.0" width="60" height="102.0" rx="5" fill="#c9882f"/>
+<text x="220.4" y="322.0" text-anchor="middle" font-size="16" font-weight="700" fill="#16241f">17</text>
+<rect x="280.0" y="370.0" width="60" height="66.0" rx="5" fill="#3f72d4"/>
+<text x="310.0" y="358.0" text-anchor="middle" font-size="16" font-weight="700" fill="#16241f">11</text>
+<rect x="369.6" y="382.0" width="60" height="54.0" rx="5" fill="#3f72d4"/>
+<text x="399.6" y="370.0" text-anchor="middle" font-size="16" font-weight="700" fill="#16241f">9</text>
+<rect x="459.2" y="394.0" width="60" height="42.0" rx="5" fill="#3f72d4"/>
+<text x="489.2" y="382.0" text-anchor="middle" font-size="16" font-weight="700" fill="#16241f">7</text>
+<text x="220.4" y="304.0" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a96f1f">peak 63.1 &#176;C *</text>
+<rect x="642.2" y="322.6" width="58" height="113.4" rx="5" fill="#9aa6b2"/>
+<text x="671.2" y="310.6" text-anchor="middle" font-size="15" font-weight="700" fill="#16241f">0.378</text>
+<rect x="728.6" y="302.2" width="58" height="133.8" rx="5" fill="#c9882f"/>
+<text x="757.6" y="290.2" text-anchor="middle" font-size="15" font-weight="700" fill="#16241f">0.446</text>
+<rect x="815.0" y="267.4" width="58" height="168.6" rx="5" fill="#9aa6b2"/>
+<text x="844.0" y="255.4" text-anchor="middle" font-size="15" font-weight="700" fill="#16241f">0.562</text>
+<rect x="901.4" y="221.8" width="58" height="214.2" rx="5" fill="#9aa6b2"/>
+<text x="930.4" y="209.8" text-anchor="middle" font-size="15" font-weight="700" fill="#16241f">0.714</text>
+<rect x="987.8" y="247.6" width="58" height="188.4" rx="5" fill="#9aa6b2"/>
+<text x="1016.8" y="235.6" text-anchor="middle" font-size="15" font-weight="700" fill="#16241f">0.628</text>
+<text x="130.8" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">0 s</text>
+<text x="130.8" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=3</text>
+<text x="220.4" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">30 s *</text>
+<text x="220.4" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=1</text>
+<text x="310.0" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">60 s</text>
+<text x="310.0" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=3</text>
+<text x="399.6" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">90 s</text>
+<text x="399.6" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=1</text>
+<text x="489.2" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">120 s</text>
+<text x="489.2" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=1</text>
+<text x="671.2" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">0 s</text>
+<text x="671.2" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=3</text>
+<text x="757.6" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">30 s *</text>
+<text x="757.6" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=1</text>
+<text x="844.0" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">60 s</text>
+<text x="844.0" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=3</text>
+<text x="930.4" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">90 s</text>
+<text x="930.4" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=1</text>
+<text x="1016.8" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#45524f">120 s</text>
+<text x="1016.8" y="476" text-anchor="middle" font-size="10" fill="#9aa6b2">N=1</text>
+<text x="297" y="495" text-anchor="middle" font-size="12.5" fill="#7b8783">minimum-residence dwell</text>
+<text x="823" y="495" text-anchor="middle" font-size="12.5" fill="#7b8783">minimum-residence dwell</text>
+<rect x="44" y="524" width="180" height="32" rx="16" fill="#eef2f0"/>
+<text x="134" y="545" text-anchor="middle" font-size="14" fill="#3d4a46">bounded look-ahead</text>
+<rect x="240" y="524" width="230" height="32" rx="16" fill="#eef2f0"/>
+<text x="355" y="545" text-anchor="middle" font-size="14" fill="#3d4a46">10-min open-loop &#183; 150 req</text>
+<rect x="490" y="524" width="190" height="32" rx="16" fill="#eef2f0"/>
+<text x="585" y="545" text-anchor="middle" font-size="14" fill="#3d4a46">gated starts &lt;= 50 &#176;C</text>
+<rect x="700" y="524" width="130" height="32" rx="16" fill="#eef2f0"/>
+<text x="765" y="545" text-anchor="middle" font-size="14" fill="#3d4a46">0 throttling</text>
+<text x="44" y="580" font-size="11.5" fill="#7c8783">Total switches = switch_to_q4 + switch_to_q8 per run; Q4 residence fraction = share of the run on Q4; dwell = minimum residence before leaving Q4.</text>
+<text x="44" y="598" font-size="11.5" fill="#7c8783">N=3 at 0 s and 60 s, N=1 otherwise. * 30 s peaked at 63.1 &#176;C (2.0 s &gt;= 63 &#176;C), the only sweep point to cross the threshold. Fan on, Raspberry Pi 5.</text>
+</svg>
