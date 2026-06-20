@@ -1,8 +1,10 @@
 # Findings: thermal dynamics & look-ahead control
 
-> **In plain language.** This is the lab notebook behind one question: on a
-> Raspberry Pi 5, does *predicting* temperature help a controller manage heat
-> more than just *reacting* to it? An early benchmark was unfair (closed-loop, so
+> **In plain language.** The router's job is graceful degradation: under heat it
+> steps down from the Q8 model to the lighter Q4 model to keep serving. This
+> notebook digs into one refinement of that step: on a Raspberry Pi 5, does
+> *predicting* the temperature beat just *reacting* to it? An early benchmark was
+> unfair (closed-loop, so
 > the faster model did more work in the same window), so the load was fixed to a
 > constant request rate. Under that fair load look-ahead first looked promising,
 > but a non-predictive controller given the *same* Q4 time matched it within
@@ -21,10 +23,9 @@ of the look-ahead experiments.
 **Status (2026-06-20):** complete through three results — (1) a closed-loop
 measurement counterexample; (2) at matched Q4 time, the look-ahead thermal edge
 largely disappears; (3) a minimum-residence (dwell) sweep showing a
-switch-economy vs Q4-time trade-off. The synthesized **Finding** / **Implication**
-for results (1)-(2) are part-way down; the minimum-residence follow-up (3) and its
-own summary are in the final two sections. Everything else is the chronological
-run log.
+switch-economy vs Q4-time trade-off. A mid-document **Finding** / **Implication**
+covers the look-ahead results; the **Consolidated finding** at the very end folds
+in the dwell sweep. Everything between is the chronological run log.
 
 ## Question
 
@@ -584,3 +585,37 @@ The useful finding is therefore narrower: **anti-flap control trades switch
 economy against Q4 residence time on this workload.** The next design step should
 not be "more dwell"; it should define how much extra Q4 time is acceptable for a
 given reduction in switching.
+
+## Consolidated finding (look-ahead and dwell)
+
+This extends the **Finding** above with the minimum-residence (dwell) result, so
+the whole look-ahead arc reads in one place. The investigation was four steps:
+
+1. **A measurement trap.** Early switching appeared to lower heat only because the
+   closed-loop benchmark let the faster Q4 path complete more work in the same
+   window. Fixing the load to a constant arrival rate removed the confound.
+2. **A promising pilot.** Under that open-loop load, bounded look-ahead stayed
+   below 63 °C in 3/3 runs while the reactive controller did not (median peak
+   62.0 vs 63.7 °C; median time ≥63 °C 0.0 vs 207.1 s).
+3. **The control.** Against a non-predictive controller given roughly the same Q4
+   time, the gap shrank to 0.6 °C (median peak 62.0 vs 62.6 °C, both 0.0 s
+   ≥63 °C). The thermal benefit tracked Q4 time, not prediction.
+4. **The dwell trade-off.** A minimum-residence rule cut total switches from 36 to
+   7, but only by spending more time on Q4 (fraction 0.378 up to 0.714), and the
+   30 s setting briefly crossed 63 °C. No setting reduced switching for free.
+
+**Finding.** On this Raspberry Pi 5 workload, the controller's thermal leverage
+comes from how much time it spends on the lighter Q4 model — not from predicting
+temperature, and not from switching more cleverly. Anti-flap control buys quieter
+switching at the cost of more Q4 time, not for free.
+
+**Implication.**
+
+- Evaluate edge thermal control under an open-loop load; closed-loop throughput
+  does not measure thermal exposure.
+- Treat time on the lighter model as the primary thermal lever. Prediction and
+  dwell are refinements that did not beat it here.
+- The next question is a cost, not "more dwell": how much extra Q4 time — and the
+  output-quality exposure that comes with it — is acceptable per switch removed. A
+  second axis worth measuring is whether energy per token degrades non-linearly as
+  temperature rises within a run.

@@ -1,9 +1,10 @@
 # Thermal Guardian
 
-**A thermal-aware LLM router for the Raspberry Pi 5.** It keeps a locally hosted
-chatbot responsive under sustained load by automatically switching between a
-higher-precision model (Q8) and a lighter fallback (Q4) based on the device's
-temperature — all behind a standard OpenAI-compatible API.
+**A thermal-aware LLM router for the Raspberry Pi 5.** When the chip heats up
+under sustained load, it trades model quality for continuity: it steps down from a
+higher-precision model (Q8) to a lighter one (Q4) so the service keeps running
+instead of throttling or stalling, then restores Q8 once the device cools — all
+behind a standard OpenAI-compatible API.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
@@ -31,23 +32,33 @@ device is busiest.
 heavier, higher-precision one (**Q8**) and a lighter, faster fallback (**Q4**).
 It continuously reads the chip's temperature and switches to the lighter model
 when things heat up, then shifts back once the device cools, much like a car
-dropping to a lower gear on a steep climb. Applications talk to it through the
-same API they would use for OpenAI, so adopting it can be as simple as changing
-the base URL.
+dropping to a lower gear on a steep climb. The goal is to keep serving through a
+hot spell at reduced quality, rather than let the device throttle to a crawl or
+stop. Applications talk to it through the same API they would use for OpenAI, so
+adopting it can be as simple as changing the base URL.
 
-## What's notable
+## What it's for
 
-This is a working system and a careful measurement study, not a benchmark win:
+The point is graceful degradation under a hardware limit, not winning a speed
+benchmark. On an edge device that has to keep serving, you may want the
+higher-quality Q8 model but cannot run it indefinitely without overheating.
+Thermal Guardian keeps the service alive by stepping down to the lighter Q4 model
+when the chip heats up and restoring Q8 once it cools — accepting lower quality
+for a while to avoid the worse outcome: throttling, stalls, or a thermal
+shutdown.
 
-- **What runs:** two live LLM backends (Q8 and Q4) on one Raspberry Pi 5,
-  switched by on-device temperature behind an OpenAI-compatible API. It held up
-  across five 30-minute runs per mode with no throttling and no thermal safety
-  stops.
-- **What the measurements show, including the inconvenient parts:** the simplest
-  baseline — always using the light Q4 model — was never beaten by the
-  controller; and a look-ahead "predict the heat" idea was walked back once a
-  fairer test shrank its advantage to 0.6 °C (62.0 vs 62.6 °C), showing the
-  benefit came from time on Q4, not from prediction.
+What this repository establishes, honestly:
+
+- **The mechanism works on real hardware.** Two live model backends on one
+  Raspberry Pi 5, switched live by on-device temperature behind an
+  OpenAI-compatible API, across five 30-minute runs per mode with no throttling
+  and no thermal safety stops.
+- **It is honest about scope.** In these fan-on runs nothing throttled and the
+  light Q4 model was already good enough, so the controller neither rescued a
+  throttling Q8 nor beat always-Q4 — these runs demonstrate the switching
+  mechanism and its cost, not the payoff. The fallback becomes decisive in the
+  cases not yet tested here: a quality-sensitive workload where Q4 is not
+  acceptable, or thermal stress that would throttle fixed Q8.
 
 ## Results at a glance
 
@@ -67,8 +78,9 @@ controller nearly matched it on speed (within 0.4%) because under sustained load
 it switches to Q4 and stays there: in each 30-minute run it switched to Q4 once
 and back once (`switch_to_q4 = 1`, `switch_to_q8 = 1`). It clearly beat fixed Q8
 (+72% throughput, −32% J/token) and finished all five runs with no throttling and
-no thermal safety stops. The controller is not universally better; it is a working
-thermal-control path, and a measurement of where the simple baseline still wins.
+no thermal safety stops. The controller's role is not to beat Q4 on speed; it is
+to keep a quality-preferring service running under heat, and these runs show that
+path works at a small, measured cost.
 
 ## What I asked, measured, and found
 
@@ -77,7 +89,7 @@ a measurement reveals something non-obvious about edge LLM inference, stated as
 the **question, measurement, finding, and implication**. Three such results so
 far.
 
-### 1. Is a thermal controller a better default than a fixed model?
+### 1. Where does the controller pay off versus fixed models?
 
 - **Measured:** fixed Q8, fixed Q4, and the controller, each run 30 minutes ×
   N=5 with the same prompt, active cooling, USB power-meter readings, full
@@ -143,7 +155,9 @@ Full apparatus, data, and write-up of all three:
 
 Small edge devices can run local LLMs, but they do not behave like desktop GPUs.
 Under sustained load, temperature and power delivery become part of the system
-design. This project set out to answer concrete questions:
+design. The design goal is graceful degradation: keep a quality-preferring service
+running under a thermal limit by stepping down to a lighter model, instead of
+letting it throttle or stall. This project set out to answer concrete questions:
 
 - Can a Raspberry Pi 5 run two quantized LLM backends and switch between them
   live?
