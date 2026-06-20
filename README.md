@@ -53,13 +53,13 @@ the device cools — choosing a bounded, known quality drop so the service stays
 responsive and within its limits, rather than being throttled blindly or failing
 outright.
 
-What this repository establishes, honestly:
+What this repository actually shows:
 
 - **The mechanism works on real hardware.** Two live model backends on one
   Raspberry Pi 5, switched live by on-device temperature behind an
   OpenAI-compatible API, across five 30-minute runs per mode with no throttling
   and no thermal safety stops.
-- **It is honest about scope.** In these fan-on runs nothing throttled and the
+- **Where it doesn't pay off yet.** In these fan-on runs nothing throttled and the
   light Q4 model was already good enough, so the controller neither rescued a
   throttling Q8 nor beat always-Q4 — these runs demonstrate the switching
   mechanism and its cost, not the payoff. The fallback becomes decisive in the
@@ -90,10 +90,10 @@ path works at a small, measured cost.
 
 ## What I asked, measured, and found
 
-The router is not the whole result. This project is considered finished only when
-a measurement reveals something non-obvious about edge LLM inference, stated as
-the **question, measurement, finding, and implication**. Three such results so
-far.
+The router is the deliverable; the findings are the point. The bar I set was to
+surface at least one result that isn't obvious in advance, not just to show the
+system working. Three questions so far, each as a question, measurement, finding,
+and implication.
 
 ### 1. Where does the controller pay off versus fixed models?
 
@@ -219,14 +219,13 @@ The headline numbers come from the M2 fan-on protocol:
 - **Runs:** 1800 s per run, **N = 5** per condition, reported as medians + IQR
 - **Power:** energy per token derived from manual USB power-meter readings
 
-What the experiment **showed**: the Pi 5 ran both Q8 and Q4 `llama-server`
-backends; the router served OpenAI-compatible chat against them; the controller
-switched Q8 → Q4 and back in **5/5** runs; all 15 selected runs finished with no
-throttling and no safety stops; fixed Q4 was the best baseline on latency,
-throughput, and J/token; and the controller beat fixed Q8 (+72% tok/s, −32%
-J/token) but did not beat fixed Q4. What it does *not* show is under
-[Limitations](#limitations). Full evidence:
-[`docs/m2_full_fan_on_n5_results.md`](docs/m2_full_fan_on_n5_results.md).
+What it showed: the Pi 5 ran both backends, and the router served
+OpenAI-compatible chat against them. The controller switched Q8 → Q4 and back in
+**5/5** runs, and all 15 selected runs finished with no throttling and no safety
+stops. On the numbers, fixed Q4 was the best baseline on latency, throughput, and
+J/token; the controller beat fixed Q8 (+72% tok/s, −32% J/token) but did not beat
+fixed Q4. What it does *not* show is under [Limitations](#limitations). Full
+evidence: [`docs/m2_full_fan_on_n5_results.md`](docs/m2_full_fan_on_n5_results.md).
 
 ## Try it locally (no Raspberry Pi needed)
 
@@ -340,12 +339,10 @@ src/thermal_guardian/
 
 ## Roadmap / open questions
 
-- **Switch economy:** controlling for total Q4 time made look-ahead's thermal
-  edge largely vanish. A minimum-residence follow-up then reduced switching, but
-  the 60-second N=3 confirmation increased Q4 fraction from 0.378 to 0.562 while
-  reducing total switches from 36 to 11. This is useful evidence of a control
-  trade-off, not a new performance claim. See
-  [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+- **Switch economy:** a minimum-residence (dwell) rule cut model switches only by
+  spending more time on Q4 — a trade-off, not a free win (see
+  [`docs/findings_lookahead.md`](docs/findings_lookahead.md)). The open question is
+  how much extra Q4 time is acceptable per switch removed.
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?
@@ -367,7 +364,7 @@ src/thermal_guardian/
 - **Quantization, Q8 / Q4:** ways to store an AI model with more or fewer bits
   of precision. **Q8** keeps more detail (heavier, slower, higher quality);
   **Q4** is compressed (lighter, faster, slightly lower quality). Same model,
-  two "weights classes."
+  two "weight classes."
 - **Throttling:** a chip's self-protection. When it gets too hot it deliberately
   slows itself down to avoid damage — which makes a chatbot feel laggy.
 - **J/token:** joules of energy spent per generated word-piece. Lower is more
