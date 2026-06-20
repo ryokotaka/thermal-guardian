@@ -340,7 +340,9 @@ to a specific evidence package.
 - **Switch economy (next):** controlling for total Q4 time made look-ahead's
   thermal edge largely vanish, so the open question is whether a minimum-residence
   (dwell) rule reaches the same thermal result with fewer, less disruptive
-  switches. See [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+  switches. A single 120-second residence pilot reduced switching but used much
+  more Q4 time, so the next step is a smaller residence sweep rather than a new
+  claim. See [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?
