@@ -1,5 +1,10 @@
 # M2-lite Completion Package
 
+> **What this is:** a record that the measurement harness works (a short smoke
+> run), not a performance result. **Who it's for:** engineers checking the
+> tooling. **Bottom line:** the harness collected comparable evidence files; it
+> proves nothing about which model is better.
+
 This package records the 2026-06-14 fan-on M2-lite smoke run. It is evidence
 that the M2 harness can collect comparable request, telemetry, graph, and manual
 power-meter files. It is not evidence of performance improvement,

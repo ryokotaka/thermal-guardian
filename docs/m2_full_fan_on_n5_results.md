@@ -1,5 +1,10 @@
 # M2 Full Fan-on N=5 Results
 
+> **What this is:** the raw evidence behind the README's headline numbers.
+> **Who it's for:** anyone who wants to verify the results.
+> **Bottom line:** all 15 runs finished with no throttling or safety stop; fixed
+> Q4 was the best baseline, and the controller beat fixed Q8 but not fixed Q4.
+
 This file records the completed fan-on M2 evaluation package from 2026-06-15 to
 2026-06-16. It is an evidence note, not marketing prose.
 

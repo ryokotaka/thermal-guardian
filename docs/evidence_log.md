@@ -1,5 +1,10 @@
 # Evidence Log
 
+> **What this is:** a dated log of every fact actually checked on the device,
+> each paired with the exact wording it supports. **Who it's for:** reviewers who
+> want to trace any claim back to its evidence. **Bottom line:** nothing here is a
+> claim until the evidence files and run conditions are checked.
+
 This file records checked facts from local/Pi runs. It is not public-facing
 performance prose. Do not turn any entry here into a claim without checking the
 evidence files and the run conditions.

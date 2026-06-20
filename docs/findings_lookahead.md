@@ -1,5 +1,22 @@
 # Findings: thermal dynamics & look-ahead control
 
+> **In plain language.** This is the lab notebook behind one question: on a
+> Raspberry Pi 5, does *predicting* temperature let a controller handle heat
+> better than just *reacting* to it? The first surprise was a measurement trap —
+> the original benchmark let a faster model do more work, which confounded the
+> comparison — so the load was made fair (a fixed request rate). Under that fair
+> load, look-ahead first looked promising; but compared against a non-predictive
+> controller that spent the *same* time on the lighter model, its advantage
+> mostly disappeared — the real lever was time on the light model, not
+> prediction. A final follow-up found that forcing the controller to "commit" to
+> the light model cuts switching but costs more light-model time: a trade-off,
+> not a free win. In short, a look-ahead idea was tested and largely walked back,
+> with data.
+>
+> *Who this is for: skim the plain-language summary above; engineers and
+> reviewers can follow the chronological run log, tables, and evidence hashes
+> below, ending in the author's **Finding** and **Implication**.*
+
 > **Working doc.** This is the "question → measurement → finding → implication"
 > scaffold for the look-ahead investigation. The assistant fills *question* and
 > *measurement* (apparatus, protocol, plots, derived numbers). The **finding and
@@ -7,10 +24,11 @@
 > not write them. Once the finding is backed by reproducible data, lift it into a
 > `## Findings` section of the README.
 
-**Status (2026-06-19):** open-loop N=3 pilot complete — bounded look-ahead stayed
-below 63 °C in 3/3 runs vs 0/3 for reactive (pilot, not a final claim). The
-synthesized conclusion is in **Finding** / **Implication** at the end of this doc;
-the sections in between are the chronological run log.
+**Status (2026-06-20):** complete through three results — (1) a closed-loop
+measurement counterexample; (2) at matched Q4 time, the look-ahead thermal edge
+largely disappears; (3) a minimum-residence (dwell) sweep showing a
+switch-economy vs Q4-time trade-off. The synthesized **Finding** / **Implication**
+are at the end of this doc; the sections in between are the chronological run log.
 
 ## Question
 

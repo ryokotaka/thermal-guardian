@@ -1,5 +1,10 @@
 # Decisions
 
+> **What this is:** a dated log of project decisions the author approved (names,
+> model choice, protocol settings). **Who it's for:** anyone tracing why the
+> project is set up the way it is. **Bottom line:** each entry is a recorded
+> decision, not a performance claim.
+
 2026-06-13 | Repository name: edge-llm-guardian | User approved this name before Phase 1 implementation.
 2026-06-14 | M0 model candidate approved | User approved Qwen/Qwen2.5-1.5B-Instruct-GGUF for M0 bring-up, using qwen2.5-1.5b-instruct-q8_0.gguf and qwen2.5-1.5b-instruct-q4_k_m.gguf. License verified as Apache-2.0 on the Hugging Face model card. This is not an M0 pass or performance claim.
 2026-06-14 | M1 no-fan switch evidence recorded | With active cooling disconnected, the Pi 5 run recorded one switch_to_q4 event at 70.3 C and analyze-events returned ok=true with oscillation_detected=false. The run was safety-stopped at 81.8 C after get_throttled became 0x80000, so this is switch evidence only, not a no-fan stability or performance claim. Evidence path: data/m1/2026-06-14/nofan/.
