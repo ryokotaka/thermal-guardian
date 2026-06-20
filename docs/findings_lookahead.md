@@ -26,7 +26,9 @@
 measurement counterexample; (2) at matched Q4 time, the look-ahead thermal edge
 largely disappears; (3) a minimum-residence (dwell) sweep showing a
 switch-economy vs Q4-time trade-off. The synthesized **Finding** / **Implication**
-are at the end of this doc; the sections in between are the chronological run log.
+for results (1)-(2) are part-way down; the minimum-residence follow-up (3) and its
+own summary are in the final two sections. Everything else is the chronological
+run log.
 
 ## Question
 

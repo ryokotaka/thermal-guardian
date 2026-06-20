@@ -37,18 +37,17 @@ the base URL.
 
 ## What's notable
 
-Two findings limit what this controller can claim, and both are reported in
-full:
+This is a working system and a careful measurement study, not a benchmark win:
 
-- **The simplest baseline won.** On this hardware and workload, the best baseline
-  was simply always running the light Q4 model; the temperature-switching
-  controller never beat it. The controller's only measurable gain was over the
-  heavy Q8 model: +72% tokens/s (11.23 vs 6.53) and −32% energy per token
-  (0.731 vs 1.081 J/token).
-- **A look-ahead idea was walked back.** Switching on *predicted* temperature
-  looked promising in a pilot, but against a non-predictive controller given the
-  same Q4 time, the peak-temperature gap shrank to 0.6 °C (62.0 vs 62.6 °C). The
-  gain came from time spent on Q4, not from prediction.
+- **What runs:** two live LLM backends (Q8 and Q4) on one Raspberry Pi 5,
+  switched by on-device temperature behind an OpenAI-compatible API. It held up
+  across five 30-minute runs per mode with no throttling and no thermal safety
+  stops.
+- **What the measurements show, including the inconvenient parts:** the simplest
+  baseline — always using the light Q4 model — was never beaten by the
+  controller; and a look-ahead "predict the heat" idea was walked back once a
+  fairer test shrank its advantage to 0.6 °C (62.0 vs 62.6 °C), showing the
+  benefit came from time on Q4, not from prediction.
 
 ## Results at a glance
 
@@ -104,7 +103,12 @@ rerun then produced a **counterexample**:
 > were coupled. The real question became: *what workload is fair for evaluating
 > thermal control?*
 
-![N=3 open-loop look-ahead pilot: with completed work held equal, median peak 62.0 vs 63.7 °C and 0 vs 207 s above the 63 °C threshold](docs/assets/lookahead_open_loop_4s_n3_summary.svg)
+Re-run under a fair, open-loop load, the pilot looked striking:
+
+![N=3 open-loop look-ahead pilot, later corrected by the matched-Q4 control below: median peak 62.0 vs 63.7 °C and 0 vs 207 s above the 63 °C threshold](docs/assets/lookahead_open_loop_4s_n3_summary.svg)
+
+But look-ahead also spent more time on the cooler Q4 model, which lowers heat by
+itself. Controlling for that:
 
 - **Measured:** a fair, open-loop load (fixed arrival rate, 150 completed
   requests per run). Bounded look-ahead (N=3) vs a non-predictive reactive
@@ -122,6 +126,8 @@ while before switching back, to reduce noisy flapping between models.
 
 ![Minimum-residence dwell sweep: total switches fall from 36 to 7 only as the Q4 residence fraction rises; the 30 s point crossed 63 C](docs/assets/lookahead_dwell_sweep.svg)
 
+- **Measured:** the same 10-minute open-loop load, sweeping the dwell time across
+  0, 30, 60, 90, 120 s (N=3 at 0 and 60 s, single runs otherwise).
 - **Found:** more dwell cut switches (36 → 7 across 0–120 s) but also raised Q4
   residence time, and the 30 s setting peaked at 63.1 °C (2.0 s above the
   threshold). It is a **trade-off, not a free win**, and the sweep is noisy
