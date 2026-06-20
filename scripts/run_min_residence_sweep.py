@@ -11,6 +11,7 @@ from datetime import date
 from pathlib import Path
 import argparse
 import json
+import re
 import socket
 import subprocess
 import sys
@@ -29,6 +30,8 @@ def main() -> None:
     parser.add_argument("--output-root", default=None)
     parser.add_argument("--duration-sec", type=float, default=600.0)
     parser.add_argument("--arrival-interval-sec", type=float, default=4.0)
+    parser.add_argument("--max-start-temp-c", type=float, default=50.0)
+    parser.add_argument("--cooldown-timeout-sec", type=float, default=1800.0)
     parser.add_argument(
         "--min-residence-sec",
         type=float,
@@ -53,6 +56,8 @@ def main() -> None:
             m2_config=args.m2_config,
             duration_sec=args.duration_sec,
             arrival_interval_sec=args.arrival_interval_sec,
+            max_start_temp_c=args.max_start_temp_c,
+            cooldown_timeout_sec=args.cooldown_timeout_sec,
         )
         run_specs.append(f"{label}:{value:g}={run_dir}")
 
@@ -100,12 +105,19 @@ def _run_one(
     m2_config: str,
     duration_sec: float,
     arrival_interval_sec: float,
+    max_start_temp_c: float,
+    cooldown_timeout_sec: float,
 ) -> Path:
     run_dir = output_root / label
     if (run_dir / "manifest.json").exists():
         print(f"skip existing run: {run_dir}")
         return run_dir
     run_dir.mkdir(parents=True, exist_ok=True)
+    _wait_for_start_gate(
+        run_dir=run_dir,
+        max_start_temp_c=max_start_temp_c,
+        cooldown_timeout_sec=cooldown_timeout_sec,
+    )
     _write_router_run_config(run_dir=run_dir, router_config=router_config)
     _stop_router()
     router_stdout = (run_dir / "router.stdout.log").open("w", encoding="utf-8")
@@ -159,6 +171,70 @@ def _run_one(
             router.wait(timeout=5)
         router_stdout.close()
     return run_dir
+
+
+def _wait_for_start_gate(
+    *,
+    run_dir: Path,
+    max_start_temp_c: float,
+    cooldown_timeout_sec: float,
+) -> None:
+    deadline = time.time() + cooldown_timeout_sec
+    log_path = run_dir / "preflight.jsonl"
+    while True:
+        temp_c = _measure_temp_c()
+        throttled = _get_throttled()
+        sample = {
+            "ts": time.time(),
+            "temp_c": temp_c,
+            "throttled_hex": throttled,
+            "max_start_temp_c": max_start_temp_c,
+            "ok": temp_c <= max_start_temp_c and throttled == "0x0",
+        }
+        with log_path.open("a", encoding="utf-8") as fp:
+            fp.write(json.dumps(sample) + "\n")
+        if sample["ok"]:
+            (run_dir / "pre_temp.txt").write_text(f"temp={temp_c:.1f}'C\n", encoding="utf-8")
+            (run_dir / "pre_throttled.txt").write_text(
+                f"throttled={throttled}\n",
+                encoding="utf-8",
+            )
+            return
+        if time.time() >= deadline:
+            raise SystemExit(
+                f"start gate timed out for {run_dir}: temp={temp_c:.1f}C "
+                f"throttled={throttled}, required temp<={max_start_temp_c:.1f}C "
+                "and throttled=0x0"
+            )
+        print(
+            f"waiting for start gate: temp={temp_c:.1f}C "
+            f"throttled={throttled} target<={max_start_temp_c:.1f}C",
+            flush=True,
+        )
+        time.sleep(10)
+
+
+def _measure_temp_c() -> float:
+    result = subprocess.run(
+        ["vcgencmd", "measure_temp"],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    match = re.search(r"temp=([0-9.]+)'C", result.stdout)
+    if not match:
+        raise SystemExit(f"could not parse vcgencmd measure_temp: {result.stdout!r}")
+    return float(match.group(1))
+
+
+def _get_throttled() -> str:
+    result = subprocess.run(
+        ["vcgencmd", "get_throttled"],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    return result.stdout.strip().split("=", 1)[-1]
 
 
 def _write_router_run_config(*, run_dir: Path, router_config: str) -> None:
