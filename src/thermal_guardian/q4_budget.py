@@ -28,6 +28,7 @@ class RunBudgetSummary:
     q4_fraction: float
     switch_to_q4_count: int
     switch_to_q8_count: int
+    residence_blocked_count: int
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -46,6 +47,7 @@ class RunBudgetSummary:
             "q4_fraction": round(self.q4_fraction, 6),
             "switch_to_q4_count": self.switch_to_q4_count,
             "switch_to_q8_count": self.switch_to_q8_count,
+            "residence_blocked_count": self.residence_blocked_count,
         }
 
 
@@ -93,6 +95,9 @@ def summarize_run(label: str, run_dir: str | Path, *, temp_up_c: float) -> RunBu
         q4_fraction=q4_fraction,
         switch_to_q4_count=sum(1 for row in events_in_window if row["event"] == "switch_to_q4"),
         switch_to_q8_count=sum(1 for row in events_in_window if row["event"] == "switch_to_q8"),
+        residence_blocked_count=sum(
+            1 for row in events_in_window if row["event"] == "residence_blocked"
+        ),
     )
 
 
@@ -192,6 +197,9 @@ def _summarize_group(rows: list[RunBudgetSummary]) -> dict[str, Any]:
         "q4_fraction_median": _median([row.q4_fraction for row in rows]),
         "switch_to_q4_count_median": _median([row.switch_to_q4_count for row in rows]),
         "switch_to_q8_count_median": _median([row.switch_to_q8_count for row in rows]),
+        "residence_blocked_count_median": _median(
+            [row.residence_blocked_count for row in rows]
+        ),
         "throttle_seen_any": any(row.throttle_seen for row in rows),
         "safety_stop_any": any(row.safety_stop for row in rows),
     }

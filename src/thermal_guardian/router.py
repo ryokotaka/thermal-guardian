@@ -226,12 +226,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Thermal Guardian routing server.")
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--min-residence-sec", type=float, default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
-    if args.dry_run:
-        config = RouterConfig.from_dict({**config.__dict__, "dry_run": True})
+    config = _config_with_cli_overrides(config, args)
     run_server(config)
+
+
+def _config_with_cli_overrides(config: RouterConfig, args: argparse.Namespace) -> RouterConfig:
+    data = dict(config.__dict__)
+    if args.dry_run:
+        data["dry_run"] = True
+    if args.min_residence_sec is not None:
+        data["min_residence_sec"] = args.min_residence_sec
+    return RouterConfig.from_dict(data)
 
 
 def _parse_json_body(body: bytes) -> dict[str, Any]:
