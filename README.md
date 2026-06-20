@@ -103,9 +103,9 @@ control itself:
   matched reactive arm used 235.3 s of Q4 and peaked at 62.6 C. Both spent
   0.0 s at or above 63 C.
 - **Implication:** on this workload, the main thermal lever was Q4 time
-  allocation, not prediction itself. The next useful control question is
-  switch economy: can a minimum-residence rule commit to Q4 long enough to keep
-  temperature controlled with fewer back-and-forth switches?
+  allocation, not prediction itself. A follow-up minimum-residence sweep reduced
+  switching, but the confirmed 60-second point also increased Q4 usage, so the
+  current lesson is a trade-off rather than a free improvement.
 
 ## Why this exists
 
@@ -337,12 +337,12 @@ to a specific evidence package.
 
 ## Roadmap / open questions
 
-- **Switch economy (next):** controlling for total Q4 time made look-ahead's
-  thermal edge largely vanish, so the open question is whether a minimum-residence
-  (dwell) rule reaches the same thermal result with fewer, less disruptive
-  switches. A single 120-second residence pilot reduced switching but used much
-  more Q4 time, so the next step is a smaller residence sweep rather than a new
-  claim. See [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+- **Switch economy:** controlling for total Q4 time made look-ahead's thermal
+  edge largely vanish. A minimum-residence follow-up then reduced switching, but
+  the 60-second N=3 confirmation increased Q4 fraction from 0.378 to 0.562 while
+  reducing total switches from 36 to 11. This is useful evidence of a control
+  trade-off, not a new performance claim. See
+  [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?

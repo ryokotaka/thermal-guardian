@@ -517,6 +517,50 @@ What this honestly says:
   this does **not** prove that dwell gets the same thermal result at the same Q4
   budget.
 
-The next useful experiment is a smaller residence sweep, for example 30 s, 60 s,
-and 90 s, looking for the shortest residence period that materially reduces
-switching without greatly increasing Q4 time.
+### Smaller residence sweep: 30 / 60 / 90 s plus 60 s N=3 confirmation
+
+I then ran a gated residence sweep. Each new run waited for the Pi to cool below
+50 C and required `get_throttled=0x0` before starting. The 0-second baseline is
+the earlier bounded look-ahead N=3 median; the 120-second point is the single
+pilot above. The 60-second point initially looked promising, so I repeated it to
+N=3 before interpreting it.
+
+```text
+duration_sec = 600
+arrival_interval_sec = 4.0
+cooling = fan_on
+start gate = temp <= 50 C and throttled_hex == 0x0
+```
+
+| Arm | N | Q4 fraction | Q4 time | Total switches | Residence blocks | Peak temp | Seconds >= 63 C |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| dwell 0 s | 3 | 0.378 | 226.8 s | 36 | 0 | 62.0 C | 0.0 s |
+| dwell 30 s | 1 | 0.446 | 267.4 s | 17 | 49 | 63.1 C | 2.0 s |
+| dwell 60 s | 3 | 0.562 | 337.0 s | 11 | 64 | 62.6 C | 0.0 s |
+| dwell 90 s | 1 | 0.714 | 428.4 s | 9 | 106 | 60.9 C | 0.0 s |
+| dwell 120 s | 1 | 0.628 | 376.8 s | 7 | 110 | 62.0 C | 0.0 s |
+
+Evidence:
+
+- `data/m2/2026-06-20/min_residence_tradeoff_5pt_with_dwell60_n3.csv`
+- `data/m2/2026-06-20/min_residence_tradeoff_5pt_with_dwell60_n3.json`
+- Archive:
+  `data/m2/2026-06-20/artifacts/min_residence_gated_sweep_2026-06-20.tar.gz`
+  (SHA-256 `a773e4addda4c691e29f8e4352437a824f1c7f847be090b61c241be5b0624239`)
+
+What this honestly says:
+
+- A minimum-residence rule can reduce switch frequency: dwell 60 s reduced the
+  median total switch count from 36 to 11.
+- That reduction was not free. The same dwell 60 s median increased Q4 fraction
+  from 0.378 to 0.562 and Q4 time from 226.8 s to 337.0 s.
+- The single best-looking 60-second run did not generalize cleanly after N=3.
+  This is exactly why the follow-up was needed.
+- Longer residence values increasingly fought the controller (`residence_blocked`
+  rose to 106-110 at 90-120 s), so the current evidence does not justify claiming
+  an optimal dwell setting.
+
+The useful finding is therefore narrower: **anti-flap control trades switch
+economy against Q4 residence time on this workload.** The next design step should
+not be "more dwell"; it should define how much extra Q4 time is acceptable for a
+given reduction in switching.
