@@ -8,6 +8,7 @@ from thermal_guardian.router import (
     PROMPT_ID_HEADER,
     RouterRuntime,
     _backend_url,
+    _config_with_cli_overrides,
     _extract_prompt_id,
     _extract_tokens_out,
 )
@@ -34,6 +35,21 @@ def test_backend_url_uses_target() -> None:
     assert _backend_url(config, RouteTarget.Q4, "/v1/chat/completions") == (
         "http://q4:8082/v1/chat/completions"
     )
+
+
+def test_cli_overrides_min_residence_without_mutating_config() -> None:
+    class Args:
+        dry_run = True
+        min_residence_sec = 60.0
+
+    original = RouterConfig(min_residence_sec=0.0, dry_run=False)
+
+    updated = _config_with_cli_overrides(original, Args())
+
+    assert original.min_residence_sec == 0.0
+    assert original.dry_run is False
+    assert updated.min_residence_sec == 60.0
+    assert updated.dry_run is True
 
 
 def test_dry_run_runtime_routes_and_logs(tmp_path) -> None:

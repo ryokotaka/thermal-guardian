@@ -79,6 +79,7 @@ def test_summarize_run_computes_q4_time_between_switches(tmp_path) -> None:
     assert summary.q4_fraction == 0.3
     assert summary.switch_to_q4_count == 1
     assert summary.switch_to_q8_count == 1
+    assert summary.residence_blocked_count == 0
     assert summary.completed_requests == 2
     assert summary.tokens_out_total == 30
     assert summary.peak_temp_c == 64.0
@@ -121,6 +122,25 @@ def test_summarize_run_ignores_switch_events_after_run_end(tmp_path) -> None:
     assert summary.switch_to_q8_count == 1
 
 
+def test_summarize_run_counts_residence_blocked_events(tmp_path) -> None:
+    run_dir = tmp_path / "run"
+    write_run(
+        run_dir,
+        events=[
+            (100.0, 50.0, "q8", "none"),
+            (120.0, 61.0, "q4", "switch_to_q4"),
+            (130.0, 58.0, "q4", "residence_blocked"),
+            (140.0, 58.0, "q4", "residence_blocked"),
+            (150.0, 58.0, "q8", "switch_to_q8"),
+        ],
+    )
+
+    summary = summarize_run("bounded_dwell30_001", run_dir, temp_up_c=63.0)
+
+    assert summary.residence_blocked_count == 2
+    assert summary.as_dict()["residence_blocked_count"] == 2
+
+
 def test_summarize_run_requires_events_csv(tmp_path) -> None:
     run_dir = tmp_path / "run"
     write_run(run_dir)
@@ -155,6 +175,7 @@ def test_budget_match_selects_nearest_candidate_group(tmp_path) -> None:
     summary = build_budget_match_summary(runs)
 
     assert summary["groups"]["bounded"]["q4_time_sec_median"] == 60.0
+    assert summary["groups"]["bounded"]["residence_blocked_count_median"] == 0
     assert summary["selected_candidate"]["group"] == "reactive_up61_down59"
     assert summary["selected_candidate"]["q4_time_diff_sec"] == -5.0
 
