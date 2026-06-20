@@ -41,11 +41,17 @@ adopting it can be as simple as changing the base URL.
 
 The point is graceful degradation under a hardware limit, not winning a speed
 benchmark. On an edge device that has to keep serving, you may want the
-higher-quality Q8 model but cannot run it indefinitely without overheating.
-Thermal Guardian keeps the service alive by stepping down to the lighter Q4 model
-when the chip heats up and restoring Q8 once it cools — accepting lower quality
-for a while to avoid the worse outcome: throttling, stalls, or a thermal
-shutdown.
+higher-quality Q8 model but cannot run it indefinitely without overheating. Left
+alone, the chip protects itself by *throttling* — bluntly slowing every request —
+and past a harder limit it can miss latency deadlines, drop requests, shut down,
+or wear out the hardware over time. Those failures are involuntary and
+indiscriminate: the device decides for you, badly.
+
+Thermal Guardian degrades on purpose instead. It steps down to the lighter Q4
+model to cut heat at its source (less compute per request), then restores Q8 once
+the device cools — choosing a bounded, known quality drop so the service stays
+responsive and within its limits, rather than being throttled blindly or failing
+outright.
 
 What this repository establishes, honestly:
 
