@@ -1,16 +1,14 @@
 # Findings: thermal dynamics & look-ahead control
 
 > **In plain language.** This is the lab notebook behind one question: on a
-> Raspberry Pi 5, does *predicting* temperature let a controller handle heat
-> better than just *reacting* to it? The first surprise was a measurement trap —
-> the original benchmark let a faster model do more work, which confounded the
-> comparison — so the load was made fair (a fixed request rate). Under that fair
-> load, look-ahead first looked promising; but compared against a non-predictive
-> controller that spent the *same* time on the lighter model, its advantage
-> mostly disappeared — the real lever was time on the light model, not
-> prediction. A final follow-up found that forcing the controller to "commit" to
-> the light model cuts switching but costs more light-model time: a trade-off,
-> not a free win. In short, a look-ahead idea was tested and largely walked back,
+> Raspberry Pi 5, does *predicting* temperature help a controller manage heat
+> more than just *reacting* to it? An early benchmark was unfair (closed-loop, so
+> the faster model did more work in the same window), so the load was fixed to a
+> constant request rate. Under that fair load look-ahead first looked promising,
+> but a non-predictive controller given the *same* Q4 time matched it within
+> 0.6 °C: the lever was time on the light model, not prediction. A follow-up
+> dwell rule then cut switching only by spending more Q4 time, a trade-off rather
+> than a free win. Net: a look-ahead idea was tested and largely walked back,
 > with data.
 >
 > *Who this is for: skim the plain-language summary above; engineers and
@@ -106,7 +104,7 @@ investigation have both been collected.
 
 ## Pilot calibration note (2026-06-18)
 
-This is a calibration note, not a public README finding. A 10-minute pilot was
+This is a calibration note, not a headline finding. A 10-minute pilot was
 run to test the first, naive look-ahead controller before scaling to N >= 3.
 
 Data location on the Pi:

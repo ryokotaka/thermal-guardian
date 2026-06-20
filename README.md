@@ -12,9 +12,8 @@ temperature — all behind a standard OpenAI-compatible API.
 
 > **Part of the Edge Guardian series** — resource-aware adaptive model switching on the Raspberry Pi 5. Sibling project: [Pose Guardian](https://github.com/ryokotaka/pose-guardian) (real-time pose estimation that sheds load under CPU/resource pressure).
 
-*New here? The first three sections — **In one minute**, **What's notable**, and
-**Results at a glance** — are the whole story in plain language. Methods, data,
-and reproduction steps follow for engineers and reviewers.*
+*New here? **In one minute** and **Results at a glance** are the short version.
+Methods, data, and reproduction steps follow.*
 
 ---
 
@@ -30,27 +29,26 @@ device is busiest.
 
 `Thermal Guardian` sits in front of two versions of the same AI model: a
 heavier, higher-precision one (**Q8**) and a lighter, faster fallback (**Q4**).
-It continuously reads the chip's temperature and — much like a car shifting to a
-lower gear on a steep climb — switches to the lighter model when things heat up,
-then shifts back once the device cools. Applications talk to it through the same
-API they would use for OpenAI, so adopting it can be as simple as changing the
-base URL.
+It continuously reads the chip's temperature and switches to the lighter model
+when things heat up, then shifts back once the device cools, much like a car
+dropping to a lower gear on a steep climb. Applications talk to it through the
+same API they would use for OpenAI, so adopting it can be as simple as changing
+the base URL.
 
 ## What's notable
 
-This project is as much about **measuring honestly** as about the router itself.
-It treats its own controller as a hypothesis to test, not a result to sell, and
-every headline is paired with what it does *not* show:
+Two findings limit what this controller can claim, and both are reported in
+full:
 
-- Where a **simpler baseline already wins**, the project says so. On this
-  hardware and workload, always using the light Q4 model was the strongest
-  baseline. The controller's measurable value showed up against the heavy Q8
-  model — **72% faster** and **32% less energy per generated token** — not
-  against Q4.
-- When a **look-ahead ("predict the heat early") idea looked promising**, a
-  fairer follow-up experiment showed the benefit came mostly from spending more
-  time on the lighter model, not from prediction. That result is reported as a
-  walk-back, not buried.
+- **The simplest baseline won.** On this hardware and workload, the best baseline
+  was simply always running the light Q4 model; the temperature-switching
+  controller never beat it. The controller's only measurable gain was over the
+  heavy Q8 model: +72% tokens/s (11.23 vs 6.53) and −32% energy per token
+  (0.731 vs 1.081 J/token).
+- **A look-ahead idea was walked back.** Switching on *predicted* temperature
+  looked promising in a pilot, but against a non-predictive controller given the
+  same Q4 time, the peak-temperature gap shrank to 0.6 °C (62.0 vs 62.6 °C). The
+  gain came from time spent on Q4, not from prediction.
 
 ## Results at a glance
 
@@ -65,20 +63,20 @@ workload, reporting the median of each run:
 | `q4_fixed` — always the light model | **11.27** | **0.677** | **2661** | 68.1 | No | No |
 | `controller` — switches by temperature | 11.23 | 0.731 | 2671 | 68.1 | No | No |
 
-**How to read this honestly:** fixed Q4 was the best baseline in this workload.
-The controller nearly matched it on speed (within 0.4%) because it switches to Q4
-under sustained load, and it clearly beat fixed Q8 (+72% throughput, −32%
-J/token). Across all five controller runs it switched Q8 → Q4 and back, with **no
-throttling and no thermal safety stops**. This is not a claim that the controller
-is universally better — it is evidence that the thermal-control path works on real
-hardware, plus a clear measurement of where a simple baseline still wins.
+**What the numbers say:** fixed Q4 was the best baseline in this workload. The
+controller nearly matched it on speed (within 0.4%) because under sustained load
+it switches to Q4 and stays there: in each 30-minute run it switched to Q4 once
+and back once (`switch_to_q4 = 1`, `switch_to_q8 = 1`). It clearly beat fixed Q8
+(+72% throughput, −32% J/token) and finished all five runs with no throttling and
+no thermal safety stops. The controller is not universally better; it is a working
+thermal-control path, and a measurement of where the simple baseline still wins.
 
 ## What I asked, measured, and found
 
 The router is not the whole result. This project is considered finished only when
-a measurement reveals something non-obvious about edge LLM inference — and the
-README can state the **question, measurement, finding, and implication**. Three
-such results so far.
+a measurement reveals something non-obvious about edge LLM inference, stated as
+the **question, measurement, finding, and implication**. Three such results so
+far.
 
 ### 1. Is a thermal controller a better default than a fixed model?
 
@@ -86,11 +84,11 @@ such results so far.
   N=5 with the same prompt, active cooling, USB power-meter readings, full
   telemetry, and router switch logs.
 - **Found:** for this prompt and fan-on setup, **fixed Q4 was the best baseline.**
-  The controller's value was narrower but real — it avoided being stuck on the
-  slow Q8 model under load, beat fixed Q8 by **+72% tokens/s and −32% J/token**,
-  and recorded Q8 → Q4 → Q8 switches in 5/5 runs. It did not beat fixed Q4.
-- **Implication:** the controller earns its keep as a *measured* fallback for a
-  future quality-sensitive workload where Q4 is not good enough — not as a faster
+  The controller's value was narrower but real: it avoided being stuck on the slow
+  Q8 model under load, beat fixed Q8 by **+72% tokens/s and −32% J/token**, and
+  recorded a Q8 → Q4 → Q8 switch in 5/5 runs. It did not beat fixed Q4.
+- **Implication:** the controller is worth keeping as a *measured* fallback for a
+  future quality-sensitive workload where Q4 is not good enough, not as a faster
   path than Q4 today.
 
 ### 2. Does "look-ahead" cut heat by predicting, or just by using Q4 more?
@@ -102,8 +100,8 @@ rerun then produced a **counterexample**:
 
 > Switching earlier did not automatically lower heat. The load generator was
 > closed-loop ("send the next request immediately"), so moving to the faster Q4
-> path did *more work* in the same window — the controller and the benchmark were
-> coupled. The real question became: *what workload is fair for evaluating
+> path did *more work* in the same window, so the controller and the benchmark
+> were coupled. The real question became: *what workload is fair for evaluating
 > thermal control?*
 
 ![N=3 open-loop look-ahead pilot: with completed work held equal, median peak 62.0 vs 63.7 °C and 0 vs 207 s above the 63 °C threshold](docs/assets/lookahead_open_loop_4s_n3_summary.svg)
@@ -111,7 +109,7 @@ rerun then produced a **counterexample**:
 - **Measured:** a fair, open-loop load (fixed arrival rate, 150 completed
   requests per run). Bounded look-ahead (N=3) vs a non-predictive reactive
   controller tuned to spend a *similar* amount of time on Q4.
-- **Found:** once Q4 time was matched, the thermal edge **largely disappeared** —
+- **Found:** once Q4 time was matched, the thermal edge **largely disappeared**:
   median peak 62.0 vs 62.6 °C, both 0.0 s above 63 °C (look-ahead used a median
   226.7 s on Q4, the matched reactive arm 235.3 s).
 - **Implication:** on this workload, the real lever was **how much time is spent
@@ -124,14 +122,15 @@ while before switching back, to reduce noisy flapping between models.
 
 ![Minimum-residence dwell sweep: total switches fall from 36 to 7 only as the Q4 residence fraction rises; the 30 s point crossed 63 C](docs/assets/lookahead_dwell_sweep.svg)
 
-- **Found:** more dwell cut switches (36 → 7 across 0–120 s) **but also raised Q4
-  time**, and one short setting briefly crossed 63 °C. It is a **trade-off, not a
-  free win** — and the sweep is noisy (mostly single runs), with no clean optimum.
+- **Found:** more dwell cut switches (36 → 7 across 0–120 s) but also raised Q4
+  residence time, and the 30 s setting peaked at 63.1 °C (2.0 s above the
+  threshold). It is a **trade-off, not a free win**, and the sweep is noisy
+  (mostly single runs) with no clean optimum.
 - **Implication:** anti-flap control trades switch economy against Q4 residence
   time here; the next design question is *how much* extra Q4 time is acceptable
   per switch removed, not simply "more dwell."
 
-Full apparatus, data, and the honest write-up of all three:
+Full apparatus, data, and write-up of all three:
 [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 
 ## Why this exists
