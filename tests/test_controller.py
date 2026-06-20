@@ -82,6 +82,25 @@ def test_min_residence_blocks_leaving_current_target_too_soon() -> None:
     assert recovered.event is RouteEvent.SWITCH_TO_Q8
 
 
+def test_min_residence_does_not_block_protective_switch_to_q4() -> None:
+    # Residence gates leaving Q4 only; a protective Q8 -> Q4 switch is never delayed.
+    controller = ThermalController(
+        ControllerConfig(
+            temp_up_c=70.0,
+            temp_down_c=60.0,
+            min_switch_interval_sec=0.0,
+            min_residence_sec=30.0,
+        )
+    )
+    controller.evaluate(snapshot(0.0, 72.0))  # Q8 -> Q4, enter Q4 at 0
+    controller.evaluate(snapshot(40.0, 55.0))  # Q4 -> Q8 after residence, enter Q8 at 40
+
+    protective = controller.evaluate(snapshot(45.0, 72.0))  # only 5 s on Q8
+
+    assert protective.target is RouteTarget.Q4
+    assert protective.event is RouteEvent.SWITCH_TO_Q4
+
+
 def test_default_min_residence_preserves_reactive_switching() -> None:
     controller = ThermalController(
         ControllerConfig(

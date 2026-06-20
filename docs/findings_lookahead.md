@@ -337,9 +337,38 @@ What this honestly says:
   question is whether the same effect survives cleaner start-temperature matching
   and a less chatty controller policy.
 
+## Q4-budget-matched comparison (2026-06-19)
+
+The N=3 pilot above left one confound open: bounded look-ahead spends more time on
+the lighter Q4 model, and Q4 simply runs cooler — so "look-ahead helps" was not yet
+separated from "more Q4 time helps." To control for this, I added a **non-predictive**
+arm: a reactive controller with a lower threshold (`temp_up_c=61`, `temp_down_c=59`)
+tuned to spend a similar amount of time on Q4, compared against bounded look-ahead at
+matched Q4 residence time on the same 10-minute open-loop protocol, N=3 each.
+
+| Arm | N | Median Q4 time | Median peak temp | Median seconds >= 63 C | Median Q4 switches |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `bounded look-ahead` | 3 | 226.7 s | 62.0 C | 0.0 s | 36 |
+| `reactive 61/59` | 3 | 235.3 s | 62.6 C | 0.0 s | 32 |
+
+Evidence: `data/m2/2026-06-19/q4_budget_match/q4_budget_match_summary.{json,csv}`,
+archived as `data/m2/2026-06-19/artifacts/q4_budget_match_2026-06-19.tar.gz`
+(SHA-256 `4bb7df9b20996a14fb28011bfebfb65506892d52d22293b643de491afcccb97c`).
+
+What this honestly says:
+
+- At a similar Q4 residence time, bounded look-ahead's advantage was limited: both
+  arms stayed below the threshold (0.0 s >= 63 C) and peak temperatures were close
+  (62.0 vs 62.6 C).
+- In this condition, the lower temperature looks driven mainly by how much time is
+  spent on the lighter Q4 model, not by look-ahead itself.
+- The next test asks a different question, switch economy: whether a minimum-residence
+  (dwell) rule reaches the same thermal result with fewer, less disruptive switches
+  (the bounded arm switched a median of 36 times here).
+
 ## Finding
 
-This investigation produced two results, in order.
+This investigation produced three results, in order.
 
 **1 — A methodology counterexample.** Early switching did not automatically lower
 thermal exposure. Because the load generator was closed-loop ("send the next
@@ -356,24 +385,32 @@ controller exceeded it in 3/3 (median peak 62.0 vs 63.7 °C; median time ≥63 �
 switched often (median 18×), start temperatures were not matched, and output
 quality / long-run stability were not evaluated.
 
+**3 — At a matched Q4 budget, the thermal edge is mostly Q4 time, not prediction.**
+Holding Q4 residence time roughly equal (bounded look-ahead ~227 s vs a lower-threshold
+reactive arm ~235 s on Q4), the two were close: median peak 62.0 vs 62.6 °C and 0.0 vs
+0.0 s ≥63 °C (N=3 each). In this condition the lower temperature looks driven mainly by
+how much time is spent on the lighter Q4 model, not by look-ahead itself.
+
 ## Implication
 
 - Evaluate thermal control under an open-loop load (fixed arrival rate or request
   count). The earlier closed-loop runs remain valid only as throughput / energy
   evidence, not as evidence of reduced thermal exposure.
-- The look-ahead benefit is not yet isolated from simply spending more time on the
-  cooler Q4 model. The next test should control for total Q4 time (e.g. against a
-  lower-threshold reactive controller), match start temperatures, and calm the
-  switch policy before this becomes a firm claim.
+- Controlling for total Q4 time (a lower-threshold reactive arm at matched Q4
+  residence) made bounded look-ahead's thermal edge largely disappear — so on this
+  workload the thermal benefit is better explained by Q4 time allocation than by
+  prediction. The remaining open question is switch economy: whether a
+  minimum-residence (dwell) rule reaches the same thermal result with fewer, less
+  disruptive switches.
 
 ## Q4-time matched counterfactual protocol
 
-The next check should separate two explanations:
+This check separated two explanations:
 
 1. bounded look-ahead helped because it switched **earlier**, or
 2. bounded look-ahead helped mainly because it spent **more total time on Q4**.
 
-To test that, keep the bounded look-ahead runs fixed and add reactive-controller
+To test that, I kept the bounded look-ahead runs fixed and added reactive-controller
 arms with lower thresholds:
 
 ```text
@@ -382,7 +419,7 @@ reactive_up60_down58
 reactive_up59_down57
 ```
 
-Run each candidate once with the same open-loop protocol:
+Each candidate was run once with the same open-loop protocol:
 
 ```text
 duration_sec = 600
@@ -391,9 +428,9 @@ mode = controller
 cooling = fan_on
 ```
 
-Then choose the reactive candidate whose `q4_time_sec` is closest to the bounded
-look-ahead median. Only that selected candidate needs to be extended to N=3. The
-comparison is:
+Then I chose the reactive candidate whose `q4_time_sec` was closest to the bounded
+look-ahead median. `reactive_up61_down59` was the closest match and was extended
+to N=3. The comparison was:
 
 ```text
 same-ish Q4 residence time -> compare peak temp, seconds >= 63 C, and switches
@@ -413,10 +450,30 @@ python scripts/analyze_q4_budget_match.py --temp-up 63 \
   --out-csv data/m2/DATE/q4_budget_match/q4_budget_match_summary.csv
 ```
 
-Interpretation stays conservative:
+Interpretation stayed conservative:
 
 - if matched reactive suppresses temperature similarly, Q4 time allocation may be
   the main factor;
 - if bounded is still cooler at similar Q4 time, earlier timing may matter;
 - if matched reactive has fewer switches, bounded look-ahead's next engineering
   issue is switch chatter, not raw thermal response.
+
+## Minimum-residence follow-up
+
+The follow-up is not "more prediction." It is a switch-economy test: if Q4 time
+allocation is the main thermal lever, the next controller should commit to the
+lighter model for a minimum residence period and see whether it can keep similar
+thermal behavior with fewer Q8/Q4 transitions.
+
+This should be treated as a single pilot first, not a new claim:
+
+```text
+bounded look-ahead + min_residence_sec
+duration_sec = 600
+arrival_interval_sec = 4.0
+compare against the Q4-budget-matched runs above
+```
+
+The result should be reported even if it fails. A successful pilot would motivate
+N=3; an unsuccessful one would simply say that minimum residence did not improve
+this controller under the tested settings.

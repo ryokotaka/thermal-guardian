@@ -71,7 +71,7 @@ The router is not the whole result. The project is considered finished only
 when a measurement reveals something non-obvious about edge LLM inference and
 the README can explain the question, measurement, finding, and implication.
 
-Current evidence-backed finding:
+Current evidence-backed findings:
 
 - **Question:** under sustained local LLM load on a Raspberry Pi 5, is a thermal
   controller a better default than simply choosing one fixed quantization level?
@@ -88,6 +88,24 @@ Current evidence-backed finding:
   example, whether Q4-only output quality is unacceptable for some prompts,
   whether energy per token changes non-linearly with temperature, or whether
   memory bandwidth is the actual bottleneck.
+
+Second, the look-ahead investigation produced a counterexample about thermal
+control itself:
+
+- **Question:** did bounded look-ahead reduce thermal exposure because it
+  predicted temperature earlier, or mostly because it spent more total time on
+  the lighter Q4 model?
+- **Measurement:** a 10-minute open-loop workload (`arrival_interval_sec = 4.0`,
+  150 completed requests per run) compared bounded look-ahead N=3 with a
+  non-predictive reactive controller tuned to a similar Q4 residence time.
+- **Finding:** once Q4 time was matched, the thermal edge largely disappeared.
+  Bounded look-ahead used a median 226.7 s of Q4 and peaked at 62.0 C; the
+  matched reactive arm used 235.3 s of Q4 and peaked at 62.6 C. Both spent
+  0.0 s at or above 63 C.
+- **Implication:** on this workload, the main thermal lever was Q4 time
+  allocation, not prediction itself. The next useful control question is
+  switch economy: can a minimum-residence rule commit to Q4 long enough to keep
+  temperature controlled with fewer back-and-forth switches?
 
 ## Why this exists
 
@@ -191,10 +209,18 @@ for reactive vs 62.0 C for bounded look-ahead; median time at or above 63 C was
 
 ![N=3 open-loop look-ahead pilot: with completed work held equal, median peak 62.0 vs 63.7 °C and 0 vs 207 s above the 63 °C threshold](docs/assets/lookahead_open_loop_4s_n3_summary.svg)
 
-This is still a pilot, not a tuned result: the bounded controller switched often
+This is a pilot, not a tuned result: the bounded controller switched often
 (median 18 `switch_to_q4` events per run), and output quality / long-run
-stability were not evaluated. Full apparatus, data summaries, and the next
-validation step are in [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+stability were not evaluated.
+
+I then controlled for the obvious confound — bounded look-ahead spends more time
+on the lighter Q4 model, which runs cooler by itself. Against a non-predictive
+reactive arm with a lower threshold (61/59 °C) tuned to spend a similar time on
+Q4, the edge largely disappeared: median peak 62.0 vs 62.6 °C and 0.0 vs 0.0 s at
+or above 63 °C (N=3 each). So on this workload the lower temperature looks driven
+mainly by how much time is spent on Q4, not by look-ahead itself. Full apparatus,
+data, and this comparison are in
+[`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 
 ## Try it locally (no Raspberry Pi needed)
 
@@ -311,12 +337,10 @@ to a specific evidence package.
 
 ## Roadmap / open questions
 
-- **Validate look-ahead (next):** the open-loop N=3 pilot suggests bounded
-  look-ahead keeps the CPU below the threshold — but with much more Q4 time, a
-  chatty switch policy, and unmatched start temperatures. Confirm with matched
-  starts, a calmer policy, and a control for total Q4 time (e.g. versus a
-  lower-threshold reactive controller). See
-  [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+- **Switch economy (next):** controlling for total Q4 time made look-ahead's
+  thermal edge largely vanish, so the open question is whether a minimum-residence
+  (dwell) rule reaches the same thermal result with fewer, less disruptive
+  switches. See [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
 - Does the controller help when Q4's quality is *not* acceptable for every
   prompt?
 - Can a quality-aware policy beat fixed Q4?

@@ -26,6 +26,9 @@ class ControllerConfig:
     temp_up_c: float = 70.0
     temp_down_c: float = 60.0
     min_switch_interval_sec: float = 10.0
+    # Minimum dwell on Q4 before a switch back to Q8 is allowed (anti-flap).
+    # Gates leaving Q4 only, so a protective Q8 -> Q4 switch is never delayed.
+    # 0.0 keeps the original reactive behavior.
     min_residence_sec: float = 0.0
     # Look-ahead control: when > 0, switch on the temperature predicted
     # look_ahead_sec into the future (from the recent slope) instead of the
@@ -153,7 +156,7 @@ class ThermalController:
         reason: str,
     ) -> RouteDecision:
         previous = self._target
-        if not self._residence_elapsed(snapshot.ts):
+        if self._target is RouteTarget.Q4 and not self._residence_elapsed(snapshot.ts):
             return RouteDecision(
                 target=self._target,
                 previous_target=previous,
