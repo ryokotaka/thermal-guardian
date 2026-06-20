@@ -1,5 +1,9 @@
 # M1 Checklist
 
+> **What this is:** the check that the router can record real switch events
+> without flapping. **Who it's for:** anyone reproducing the work. **Bottom
+> line:** switch-event evidence only — no speed, energy, or stability claim.
+
 This checklist is for the M1 v0 acceptance pass after M0 has already passed.
 It records switch-event evidence only. Do not treat it as a latency,
 energy-efficiency, J/token, or long-run-stability claim.

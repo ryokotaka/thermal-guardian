@@ -1,5 +1,9 @@
 # M0 Checklist
 
+> **What this is:** the step-by-step bring-up check for getting two models
+> running on the Pi. **Who it's for:** anyone reproducing the setup. **Bottom
+> line:** confirms the models load and answer — not a performance claim.
+
 This checklist is for the M0 acceptance pass on Raspberry Pi 5. It is not a
 performance claim. Record only facts that were actually checked on the device.
 

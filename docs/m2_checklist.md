@@ -1,5 +1,9 @@
 # M2-lite Checklist
 
+> **What this is:** the pre-flight check for the model-comparison harness.
+> **Who it's for:** anyone reproducing the work. **Bottom line:** prepares and
+> validates the tooling; the real results live in the protocol and results docs.
+
 This checklist prepares the M2 comparison harness. It is not the full M2
 experiment and does not prove latency improvement, J/token improvement, or
 long-run stability.

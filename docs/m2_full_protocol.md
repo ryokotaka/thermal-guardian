@@ -1,5 +1,10 @@
 # M2 Full Protocol
 
+> **What this is:** the exact recipe used to run the N=5 evaluation, so it can be
+> repeated. **Who it's for:** engineers reproducing the work. **Bottom line:**
+> deliberately conservative — the goal is repeatable evidence, not a strong claim
+> from a single run.
+
 This protocol fixed the full evaluation plan after the M2-lite smoke run. It is
 intentionally conservative: the goal is repeatable evidence, not a strong claim
 from one run.
