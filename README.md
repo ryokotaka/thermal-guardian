@@ -44,8 +44,8 @@ benchmark. On an edge device that has to keep serving, you may want the
 higher-quality Q8 model but cannot run it indefinitely without overheating. Left
 alone, the chip protects itself by *throttling* — bluntly slowing every request —
 and past a harder limit it can miss latency deadlines, drop requests, shut down,
-or wear out the hardware over time. Those failures are involuntary and
-indiscriminate: the device decides for you, badly.
+or hit protective limits. Those failures are involuntary and indiscriminate: the
+device decides for you, badly.
 
 Thermal Guardian degrades on purpose instead. It steps down to the lighter Q4
 model to cut heat at its source (less compute per request), then restores Q8 once
@@ -59,12 +59,16 @@ What this repository actually shows:
   Raspberry Pi 5, switched live by on-device temperature behind an
   OpenAI-compatible API, across five 30-minute runs per mode with no throttling
   and no thermal safety stops.
-- **Where it doesn't pay off yet.** In these fan-on runs nothing throttled and the
+- **Where it doesn't pay off in fan-on runs.** In the main fan-on evaluation
+  nothing throttled and the
   light Q4 model was already good enough, so the controller neither rescued a
   throttling Q8 nor beat always-Q4 — these runs demonstrate the switching
-  mechanism and its cost, not the payoff. The fallback becomes decisive in the
-  cases not yet tested here: a quality-sensitive workload where Q4 is not
-  acceptable, or thermal stress that would throttle fixed Q8.
+  mechanism and its cost, not the payoff.
+- **A preliminary fan-off stress pilot found the payoff case.** With the active
+  fan removed and a fixed open-loop arrival rate, fixed Q8 hit the Raspberry Pi
+  soft-temperature throttle bit after 334 s, while the controller completed the
+  full 1200 s window with all 200 requests served and no throttle bit. This is
+  N=1 pilot evidence, not yet a replicated headline result.
 
 ## Results at a glance
 
@@ -92,7 +96,7 @@ path works at a small, measured cost.
 
 The router is the deliverable; the findings are the point. The bar I set was to
 surface at least one result that isn't obvious in advance, not just to show the
-system working. Three questions so far, each as a question, measurement, finding,
+system working. Four questions so far, each as a question, measurement, finding,
 and implication.
 
 ### 1. Where does the controller pay off versus fixed models?
@@ -154,8 +158,29 @@ while before switching back, to reduce noisy flapping between models.
   time here; the next design question is *how much* extra Q4 time is acceptable
   per switch removed, not simply "more dwell."
 
-Full apparatus, data, and write-up of all three:
+Full apparatus, data, and write-up of the look-ahead and dwell investigation:
 [`docs/findings_lookahead.md`](docs/findings_lookahead.md).
+
+### 4. Under fan-off thermal stress, does the controller preserve service?
+
+The fan-on M2 runs never throttled, so they could not show the controller's
+payoff. I removed the active fan while keeping the heatsink attached and used a
+fixed open-loop arrival rate so each arm faced the same demand.
+
+- **Measured:** one preliminary fan-off run per arm (`arrival_interval_sec = 6`,
+  1200 s target window, start gate <= 60 C and `get_throttled = 0x0`). A Q4 smoke
+  run first checked that Q4 could survive the load without throttling.
+- **Found:** fixed Q8 hit `get_throttled = 0x80000` after 334 s and stopped after
+  57 completed requests. The controller completed 1200 s with 200/200 requests,
+  no throttle bit, and no safety stop (`q4_fraction = 0.42`, `switch_to_q4 = 24`,
+  `switch_to_q8 = 23`). Fixed Q4 also completed 1200 s with no throttle bit.
+- **Implication:** this is the first direct payoff case: the controller preserved
+  service continuity where fixed Q8 did not. It is still only N=1; the controller
+  also peaked at 80.7 C and switched often, so the next step is replication and
+  smoother anti-flap control, not a final claim of optimality.
+
+Protocol and exact N=1 pilot table:
+[`docs/m3_thermal_stress_protocol.md`](docs/m3_thermal_stress_protocol.md).
 
 ## Why this exists
 
@@ -304,6 +329,8 @@ The documentation is organized by what you want to check:
   [`docs/m2_full_protocol.md`](docs/m2_full_protocol.md)
 - **The look-ahead and dwell investigation (lab notebook)** →
   [`docs/findings_lookahead.md`](docs/findings_lookahead.md)
+- **The fan-off thermal-continuity pilot** →
+  [`docs/m3_thermal_stress_protocol.md`](docs/m3_thermal_stress_protocol.md)
 - **Every checked fact and the exact wording it supports** →
   [`docs/evidence_log.md`](docs/evidence_log.md)
 - **Dated, approved project decisions** → [`DECISIONS.md`](DECISIONS.md)
@@ -334,8 +361,9 @@ src/thermal_guardian/
 - Fixed Q4 was the best baseline in the measured workload.
 - Controller thresholds were chosen for the fan-on evaluation and are not
   claimed to be optimal.
-- Fan-off long-run stability is not claimed; an earlier no-fan run reached a
-  thermal safety stop.
+- Fan-off stability is preliminary: one M3 pilot showed controller continuity
+  where fixed Q8 hit the soft-temperature throttle bit, but this is N=1 and not
+  yet replicated.
 
 ## Roadmap / open questions
 
@@ -350,6 +378,8 @@ src/thermal_guardian/
   Q8 / Q4 / controller trade-off?
 - Can thresholds be tuned for lower peak temperature without giving up too much
   Q8 time?
+- Can the fan-off M3 result replicate at N=3, and can anti-flap control reduce
+  the 47 controller switches without losing continuity?
 - Does J/token break down non-linearly as temperature rises within a run? This
   requires time-aligned power telemetry, not just run-level USB-meter totals.
 - Is the limiting factor thermal headroom, CPU execution, or memory bandwidth?
