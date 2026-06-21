@@ -302,6 +302,22 @@ def test_run_m2_records_telemetry_safety_stop_before_requests(tmp_path) -> None:
     assert telemetry_rows[0]["throttled_hex"] == "0x80000"
 
 
+def test_run_m2_can_stop_on_throttle_before_requests(tmp_path) -> None:
+    result = run_m2(
+        config=M2Config(request_count=1, safety_temp_c=82.0, stop_on_throttle=True),
+        mode="q8_fixed",
+        output_dir=tmp_path,
+        session=object(),
+        monitor=FakeMonitor([MonitorSnapshot(1.0, 65.0, 1_000_000_000, "0x80000")]),
+        background_telemetry=False,
+    )
+
+    assert result.ok is False
+    assert result.request_rows == []
+    assert result.manifest["safety_stop"] is True
+    assert result.manifest["safety_reason"] == "throttled_hex 0x80000 != 0x0"
+
+
 def test_summarize_runs_computes_medians_iqr_and_safety(tmp_path) -> None:
     run_dir = tmp_path / "controller_fan_on_001"
     run_dir.mkdir()

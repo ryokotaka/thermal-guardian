@@ -101,6 +101,7 @@ class M2Config:
     model: str = "thermal-guardian"
     sampling_interval_sec: float = 2.0
     safety_temp_c: float = 82.0
+    stop_on_throttle: bool = False
     cooling: str = "fan_on"
     prompt_id_prefix: str = "m2-lite"
     power_meter_model: str = ""
@@ -654,6 +655,9 @@ def _sample_and_store_telemetry(
     if row.temp_c >= config.safety_temp_c and not safety_reason:
         safety_reason.append(f"temp_c {row.temp_c:.1f} >= safety_temp_c {config.safety_temp_c:.1f}")
         stop_event.set()
+    if config.stop_on_throttle and int(row.throttled_hex, 16) != 0 and not safety_reason:
+        safety_reason.append(f"throttled_hex {row.throttled_hex} != 0x0")
+        stop_event.set()
     return row
 
 
@@ -1034,6 +1038,7 @@ def _with_cli_overrides(config: M2Config, args: argparse.Namespace) -> M2Config:
         "model",
         "sampling_interval_sec",
         "safety_temp_c",
+        "stop_on_throttle",
         "cooling",
         "prompt_id_prefix",
     ):
@@ -1064,6 +1069,7 @@ def main(argv: list[str] | None = None) -> None:
     run_parser.add_argument("--model", default=None)
     run_parser.add_argument("--sampling-interval-sec", type=float, default=None)
     run_parser.add_argument("--safety-temp-c", type=float, default=None)
+    run_parser.add_argument("--stop-on-throttle", action="store_true", default=None)
     run_parser.add_argument("--cooling", choices=["fan_on", "fan_off"], default=None)
     run_parser.add_argument("--prompt-id-prefix", default=None)
 
