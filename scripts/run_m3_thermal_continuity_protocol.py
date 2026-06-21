@@ -366,34 +366,36 @@ def _run_m2_condition(
         cooldown_timeout_sec=cooldown_timeout_sec,
     )
     with (run_dir / "m2_run.stdout.log").open("w", encoding="utf-8") as stdout:
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "thermal_guardian.m2",
-                "run",
-                "--config",
-                m2_config,
-                "--mode",
-                mode,
-                "--output-dir",
-                str(run_dir),
-                "--duration-sec",
-                str(duration_sec),
-                "--arrival-interval-sec",
-                str(arrival_interval_sec),
-                "--cooling",
-                "fan_off",
-                "--safety-temp-c",
-                str(safety_temp_c),
-                "--stop-on-throttle",
-                "--prompt-id-prefix",
-                prompt_id_prefix,
-            ],
+        command = [
+            sys.executable,
+            "-m",
+            "thermal_guardian.m2",
+            "run",
+            "--config",
+            m2_config,
+            "--mode",
+            mode,
+            "--output-dir",
+            str(run_dir),
+            "--duration-sec",
+            str(duration_sec),
+            "--arrival-interval-sec",
+            str(arrival_interval_sec),
+            "--cooling",
+            "fan_off",
+            "--safety-temp-c",
+            str(safety_temp_c),
+            "--stop-on-throttle",
+            "--prompt-id-prefix",
+            prompt_id_prefix,
+        ]
+        result = subprocess.run(
+            command,
             stdout=stdout,
             stderr=subprocess.STDOUT,
-            check=True,
         )
+    if result.returncode != 0 and not _is_complete_run(run_dir):
+        raise subprocess.CalledProcessError(result.returncode, command)
     return run_dir
 
 
@@ -438,34 +440,36 @@ def _run_controller_condition(
     try:
         _wait_for_port("127.0.0.1", 8080)
         with (run_dir / "m2_run.stdout.log").open("w", encoding="utf-8") as stdout:
-            subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "thermal_guardian.m2",
-                    "run",
-                    "--config",
-                    m2_config,
-                    "--mode",
-                    "controller",
-                    "--output-dir",
-                    str(run_dir),
-                    "--duration-sec",
-                    str(duration_sec),
-                    "--arrival-interval-sec",
-                    str(arrival_interval_sec),
-                    "--cooling",
-                    "fan_off",
-                    "--safety-temp-c",
-                    str(safety_temp_c),
-                    "--stop-on-throttle",
-                    "--prompt-id-prefix",
-                    "m3",
-                ],
+            command = [
+                sys.executable,
+                "-m",
+                "thermal_guardian.m2",
+                "run",
+                "--config",
+                m2_config,
+                "--mode",
+                "controller",
+                "--output-dir",
+                str(run_dir),
+                "--duration-sec",
+                str(duration_sec),
+                "--arrival-interval-sec",
+                str(arrival_interval_sec),
+                "--cooling",
+                "fan_off",
+                "--safety-temp-c",
+                str(safety_temp_c),
+                "--stop-on-throttle",
+                "--prompt-id-prefix",
+                "m3",
+            ]
+            result = subprocess.run(
+                command,
                 stdout=stdout,
                 stderr=subprocess.STDOUT,
-                check=True,
             )
+        if result.returncode != 0 and not _is_complete_run(run_dir):
+            raise subprocess.CalledProcessError(result.returncode, command)
     finally:
         router.terminate()
         try:
