@@ -100,10 +100,10 @@ Per run it reports `tau_63_sec`, `time_to_up_sec`, `peak_temp_c`, `overshoot_c`,
 `secs_above_up`, and draws the temperature overlay with per-run threshold-crossing
 markers.
 
-Context to record after each analysis run (**data only, not a finding**):
-`tau_63_sec`, `time_to_up_sec`, `overshoot_c`, and `secs_above_up`. Do not turn
-these into a README claim until the reactive and look-ahead runs for this
-investigation have both been collected.
+These per-run numbers are context, not findings on their own:
+`tau_63_sec`, `time_to_up_sec`, `overshoot_c`, and `secs_above_up`. They support a
+claim only once both the reactive and look-ahead runs in this investigation have
+been collected and compared.
 
 ## Pilot calibration note (2026-06-18)
 

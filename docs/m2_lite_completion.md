@@ -67,18 +67,18 @@ Conditions:
 J/token = mWh * 3.6 / tokens_out_total
 ```
 
-## Safe Wording
+## Supported wording
 
-Safe statement:
+Supported statement:
 
 `M2-lite fan-on smoke testing produced comparable CSV, manifest, graph, and
 manual USB power-meter evidence for Q4 fixed, Q8 fixed, and controller runs.
 The run path completed without request failures, safety stop, or throttle flags.`
 
-Unsafe statements:
+Not supported by this run:
 
-- Do not say M2 is complete.
-- Do not say Q4, Q8, or controller is proven better.
-- Do not say the controller improved J/token.
-- Do not say the controller switched in this fan-on M2-lite run.
-- Do not use these N=1 180-second results as long-run stability evidence.
+- that M2 is complete
+- that Q4, Q8, or the controller is proven better
+- that the controller improved J/token
+- that the controller switched in this fan-on M2-lite run
+- using these N=1 180-second results as long-run stability evidence

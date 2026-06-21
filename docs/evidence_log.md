@@ -6,8 +6,8 @@
 > claim until the evidence files and run conditions are checked.
 
 This file records checked facts from local/Pi runs. It is not public-facing
-performance prose. Do not turn any entry here into a claim without checking the
-evidence files and the run conditions.
+performance prose. No entry here becomes a claim without checking the evidence
+files and the run conditions.
 
 ## 2026-06-14 M0 Real Model Bring-Up
 
@@ -36,14 +36,14 @@ Evidence:
 - `data/m0/2026-06-14/server_rss.csv`
 - `data/m0/2026-06-14/pmic_idle_after_models.csv`
 
-Safe wording:
+Supported wording:
 
 `M0 real-model bring-up succeeded for Qwen2.5-1.5B Q8/Q4 on Raspberry Pi 5:
 both llama-server processes answered health and chat-smoke, and RSS plus PMIC
 check logs were recorded.`
 
-Do not claim latency improvement, J/token improvement, or long-run stability
-from this entry.
+This entry is not evidence of latency improvement, J/token improvement, or
+long-run stability.
 
 ## 2026-06-14 M1 Active-Cooling Run
 
@@ -81,14 +81,14 @@ Evidence:
 - `data/m1/2026-06-14/router_requests_tuned.csv`
 - `data/m1/2026-06-14/pmic_load_tuned.csv`
 
-Safe wording:
+Supported wording:
 
 `M1 switch evidence was confirmed on Pi with real Q8/Q4 servers under a tuned
 threshold: the router switched from Q8 to Q4, recorded the event in events.csv,
 and analyze-events found no oscillation.`
 
-Do not claim that this proves better latency, better energy efficiency, or
-long-run thermal stability.
+This does not prove better latency, better energy efficiency, or long-run thermal
+stability.
 
 ## 2026-06-14 M1 No-Fan Run
 
@@ -121,15 +121,15 @@ Evidence:
 - `data/m1/2026-06-14/nofan/pmic_load_nofan.csv`
 - `data/m1/2026-06-14/nofan/abort_reason.txt`
 
-Safe wording:
+Supported wording:
 
 `With active cooling disconnected, the original 70 C threshold produced a real
 Q8 -> Q4 switch event on Pi and analyze-events found no oscillation. The same
 run also reached a thermal safety stop at 81.8 C with get_throttled=0x80000, so
 it is switch evidence, not no-fan stability evidence.`
 
-Do not claim no-fan operation is safe, stable, or suitable for long evaluation
-runs from this entry.
+This entry is not evidence that no-fan operation is safe, stable, or suitable for
+long evaluation runs.
 
 ## 2026-06-14 M2-lite Fan-on N=1 Smoke Run
 
@@ -155,9 +155,9 @@ Interpretation:
 - `get_throttled` stayed `0x0` after the runs.
 - The controller run stayed on Q8 because fan-on temperature did not reach the
   configured 70 C switch threshold.
-- These are N=1 180-second smoke results. Do not claim performance improvement,
-  J/token improvement, energy-efficiency improvement, or long-run stability from
-  this evidence.
+- These are N=1 180-second smoke results, not evidence of performance
+  improvement, J/token improvement, energy-efficiency improvement, or long-run
+  stability.
 
 ## 2026-06-15/16 M2 Full Fan-on N=5
 
@@ -210,12 +210,12 @@ Observed:
   J/token.
 - `controller` did not outperform `q4_fixed`.
 
-Safe wording:
+Supported wording:
 
 `M2 fan-on N=5 completed on Raspberry Pi 5. The controller produced switch
 events in all selected controller runs and completed without throttle or safety
 stop. In this workload, fixed Q4 was best on latency, token/s, and J/token; the
 controller improved over fixed Q8 but did not outperform fixed Q4.`
 
-Do not claim the controller is generally best, that the 63/59 C thresholds are
-optimal, or that this proves fan-off or general long-run stability.
+This does not show the controller is generally best, that the 63/59 C thresholds
+are optimal, or that fan-off or general long-run stability holds.

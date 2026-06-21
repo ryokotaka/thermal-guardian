@@ -5,8 +5,8 @@
 > line:** switch-event evidence only — no speed, energy, or stability claim.
 
 This checklist is for the M1 v0 acceptance pass after M0 has already passed.
-It records switch-event evidence only. Do not treat it as a latency,
-energy-efficiency, J/token, or long-run-stability claim.
+It records switch-event evidence only, not a latency, energy-efficiency, J/token,
+or long-run-stability claim.
 
 ## Before Running
 
@@ -80,13 +80,13 @@ python -m thermal_guardian.m1 analyze-events \
   --output data/m1/YYYY-MM-DD/fake_m1_summary.json
 ```
 
-## Safe M1 Statement
+## Supported M1 statement
 
-After the checks above pass, the safe statement is:
+After the checks above pass, the supported statement is:
 
 `M1 tooling can generate continuous router load, record switch events in
 events.csv, and check that the recorded switch events do not oscillate faster
 than the configured cooldown.`
 
-Do not claim latency improvement, J/token improvement, energy improvement, or
-long-run thermal stability from M1 alone.
+M1 alone is not evidence of latency improvement, J/token improvement, energy
+improvement, or long-run thermal stability.

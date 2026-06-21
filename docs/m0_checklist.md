@@ -36,8 +36,8 @@ Memory caution:
 - The combined file size is about 3 GB before runtime overhead, KV cache, and
   two `llama-server` processes.
 - Raspberry Pi 5 4GB acceptance still requires `rss`, `chat-smoke`, and power
-  checks. Do not claim M0 pass, long-run stability, latency improvement, or
-  J/token improvement from model selection alone.
+  checks. Model selection alone does not establish an M0 pass, long-run
+  stability, latency improvement, or J/token improvement.
 
 ## Server Bring-Up
 
@@ -115,10 +115,10 @@ Useful M0 decision entries:
 
 ## M0 Passing Statement
 
-After the checks above pass, the safe statement is:
+After the checks above pass, the supported statement is:
 
 `M0 passes: two approved llama-server processes can stay up, both answer a
 minimal chat request, and RSS plus power-setup check logs are recorded.`
 
-Do not claim latency improvement, J/token improvement, long-run stability, or
-thermal-control effectiveness from M0 alone.
+M0 alone is not evidence of latency improvement, J/token improvement, long-run
+stability, or thermal-control effectiveness.

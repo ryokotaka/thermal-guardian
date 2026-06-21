@@ -213,6 +213,6 @@ The fan-on full M2 package is complete when:
 - The report states median and IQR, and clearly separates measured facts from
   interpretation.
 
-Do not claim that the controller is generally best. The completed fan-on N=5
+This does not show the controller is generally best. The completed fan-on N=5
 package showed the controller improved over fixed Q8 in this workload but did
 not outperform fixed Q4. See `docs/m2_full_fan_on_n5_results.md`.

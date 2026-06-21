@@ -84,13 +84,13 @@ python -m thermal_guardian.m2 plot \
   --output data/m2/YYYY-MM-DD/controller_main_graph.svg
 ```
 
-## What Not To Claim Yet
+## What this does not show yet
 
-- Do not claim Q8, Q4, or controller is faster from a single M2-lite pass.
-- Do not claim J/token until USB power-meter CSV is collected and joined with
-  token counts.
-- Do not claim fan-off long-run stability. The earlier fan-off switch run was
-  safety-stopped after high temperature and throttle history appeared.
+- A single M2-lite pass does not show Q8, Q4, or the controller is faster.
+- J/token is not established until the USB power-meter CSV is collected and joined
+  with token counts.
+- Fan-off long-run stability is not established. The earlier fan-off switch run
+  was safety-stopped after high temperature and throttle history appeared.
 
 ## Completed M2-lite Evidence
 
