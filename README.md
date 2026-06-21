@@ -177,7 +177,7 @@ fixed open-loop arrival rate so each arm faced the same demand.
 - **Found:** fixed Q8 hit `get_throttled = 0x80000` in 3/3 runs and never served
   the full window (median 100 completed requests, median peak 81.2 C). The
   controller completed 1200 s with 200/200 requests in 3/3 runs, with no throttle
-  bit and no safety stop (median peak 77.4 C, median Q4 fraction 0.74). Fixed Q4
+  bit and no safety stop (median peak 77.9 C, median Q4 fraction 0.78). Fixed Q4
   also completed 3/3 runs with no throttle bit (median peak 79.0 C).
 - **Implication:** this is the first replicated payoff case: the controller
   preserved service continuity where fixed Q8 did not. The controller still
