@@ -1,10 +1,11 @@
-# M3 Thermal-continuity protocol (proposed)
+# M3 Thermal-continuity protocol and preliminary result
 
-> **What this is:** a proposed experiment to test whether graceful degradation
+> **What this is:** an experiment to test whether graceful degradation
 > actually pays off: under a thermal stress that fixed Q8 cannot sustain, can the
 > controller step down to Q4, avoid throttle / safety-stop, and keep serving the
 > same open-loop demand? **Who it's for:** anyone judging whether the controller
-> is worth its cost. **Status:** proposed, not yet run.
+> is worth its cost. **Status:** one fan-off N=1 pilot has run; replication is
+> still needed before treating it as a headline result.
 
 ## Why this experiment
 
@@ -40,6 +41,54 @@ Secondary observation:
   continuity, not J/token or watts.
 - Anything beyond this device, prompt, cooling condition, and ceiling.
 
+## Preliminary N=1 result (2026-06-21)
+
+This pilot used the active fan disconnected and the heatsink still attached.
+Power was not recorded because the M3 question is thermal continuity, not
+J/token. Raw CSVs and logs stay under ignored `data/` paths.
+
+Before the comparison, a Q4 smoke run checked that the fixed load was viable:
+with `arrival_interval_sec = 6.0`, Q4 completed 600 s / 100 requests with
+`get_throttled = 0x0`. A heavier 4 s arrival interval was rejected first because
+Q4 itself reached 79.0 C, leaving no clean controller ceiling below the cap.
+
+Fixed conditions for the accepted N=1 pilot:
+
+- `arrival_interval_sec = 6.0`
+- run window `1200 s`
+- start gate `temp <= 60 C` and `get_throttled = 0x0`
+- safety stop `temp >= 82 C` or any `get_throttled` change
+- controller ceiling `temp_up_c = 77.7 C`, `temp_down_c = 73.7 C`
+
+| Arm | Completed requests | Peak temp (C) | Time to throttle | Throttle hex | Safety stop | Full window |
+| --- | ---: | ---: | ---: | :---: | :---: | :---: |
+| `q8_fixed_001` | 57 | 80.7 | 334.373 s | `0x80000` | Yes | No |
+| `controller_001` | 200 | 80.7 | - | `0x0` | No | Yes |
+| `q4_fixed_001` | 200 | 75.7 | - | `0x0` | No | Yes |
+
+Controller details: `q4_fraction = 0.422`, `switch_to_q4 = 24`,
+`switch_to_q8 = 23`, and `cooldown_blocked = 52`.
+
+Interpretation, kept deliberately narrow:
+
+- This is a direct N=1 payoff case: under the same fan-off open-loop demand,
+  fixed Q8 hit the Raspberry Pi sticky soft-temperature throttle bit, while the
+  controller kept serving the full window.
+- It is not yet a replicated result. Do not claim fan-off long-run stability,
+  optimal thresholds, output quality, hardware-wear reduction, or energy
+  efficiency from this run.
+- The controller still peaked at 80.7 C and switched often, so the next
+  engineering question is smoother anti-flap behavior under the same continuity
+  constraint.
+
+Evidence package on the Pi:
+
+```text
+data/m2/2026-06-21/m3_thermal_continuity_arrival6_start60/
+data/m2/2026-06-21/m3_thermal_continuity_arrival6_start60_artifacts_2026-06-21.tar.gz
+sha256: af08275bcefff586907c94b79d85bce73e0d4e7c80435683583201dd52b4d585
+```
+
 ## Fixed conditions
 
 - **Hardware:** Raspberry Pi 5 (4 GB). The **heatsink stays attached**; only the
@@ -57,7 +106,9 @@ Secondary observation:
   equilibrium (see Step 0) so the controller can actually hold it.
 - **Duration:** a fixed window (e.g. 1200 s) or until a safety stop, whichever
   comes first.
-- **Start gate:** each run waits for CPU temp <= 50 C and `get_throttled = 0x0`.
+- **Start gate:** each run waits for a configured CPU-temperature gate and
+  `get_throttled = 0x0` (the N=1 pilot used <= 60 C because fan-off idle with
+  both servers resident did not reliably cool to 50 C).
   If a run changes `get_throttled`, the next arm must not start automatically:
   Raspberry Pi sticky bits can remain set until reboot.
 - **Repetitions:** N=1 smoke first; if the effect appears, N=3.
@@ -83,8 +134,8 @@ throttle point.
    it and serve the full window.
 3. `fixed_q4` — reference: where Q4 alone settles fan-off.
 
-Rotate arm order, and let the Pi cool fully (temp <= 50 C, `get_throttled = 0x0`)
-between runs.
+Rotate arm order, and let the Pi cool to the configured start gate with
+`get_throttled = 0x0` between runs.
 
 ## Safety rules (mandatory)
 
