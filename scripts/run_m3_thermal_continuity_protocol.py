@@ -39,6 +39,8 @@ class RunSummary:
     seconds_above_ceiling: float
     seconds_throttled: float
     throttle_seen: bool
+    first_throttled_hex: str | None
+    final_throttled_hex: str | None
     safety_stop: bool
     safety_reason: str
     survived_full_window: bool
@@ -63,6 +65,8 @@ class RunSummary:
             "seconds_above_ceiling": round(self.seconds_above_ceiling, 3),
             "seconds_throttled": round(self.seconds_throttled, 3),
             "throttle_seen": self.throttle_seen,
+            "first_throttled_hex": self.first_throttled_hex,
+            "final_throttled_hex": self.final_throttled_hex,
             "safety_stop": self.safety_stop,
             "safety_reason": self.safety_reason,
             "survived_full_window": self.survived_full_window,
@@ -134,29 +138,37 @@ def main() -> None:
     )
     summaries.append(q4_smoke_summary)
 
+    if _q4_smoke_failed(q4_smoke_summary):
+        protocol = _build_protocol(
+            args=args,
+            output_root=output_root,
+            status="q4_smoke_failed",
+            ceiling_c=None,
+            temp_down_c=None,
+        )
+        protocol["stop_reason"] = _terminal_reason(
+            q4_smoke_summary,
+            current_throttled=_get_throttled(),
+        )
+        _write_terminal_marker(output_root, protocol["stop_reason"])
+        _write_json(output_root / "m3_protocol.json", protocol)
+        _write_summary(output_root, protocol, summaries)
+        print(json.dumps(protocol, indent=2))
+        print(f"summary_json={output_root / 'm3_summary.json'}")
+        return
+
     ceiling_c = _choose_ceiling(args=args, q4_smoke_summary=q4_smoke_summary)
     temp_down_c = ceiling_c - args.temp_down_delta_c
     if temp_down_c >= ceiling_c:
         raise SystemExit("computed temp_down_c must be below ceiling")
 
-    protocol = {
-        "schema": "thermal-guardian-m3-protocol-v1",
-        "status": "smoke_only" if args.stop_after_smoke else "running",
-        "output_root": str(output_root),
-        "arrival_interval_sec": args.arrival_interval_sec,
-        "smoke_duration_sec": args.smoke_duration_sec,
-        "duration_sec": args.duration_sec,
-        "safety_temp_c": args.safety_temp_c,
-        "max_start_temp_c": args.max_start_temp_c,
-        "ceiling_c": ceiling_c,
-        "temp_down_c": temp_down_c,
-        "fan_off_confirmed": args.fan_off_confirmed,
-        "power_logging": "not_used",
-        "claim_note": (
-            "M3 tests thermal continuity under fan-off stress. It does not claim "
-            "hardware wear reduction, lifespan improvement, or energy efficiency."
-        ),
-    }
+    protocol = _build_protocol(
+        args=args,
+        output_root=output_root,
+        status="smoke_only" if args.stop_after_smoke else "running",
+        ceiling_c=ceiling_c,
+        temp_down_c=temp_down_c,
+    )
     _write_json(output_root / "m3_protocol.json", protocol)
     _write_summary(output_root, protocol, summaries)
 
@@ -212,6 +224,19 @@ def main() -> None:
             )
         )
         _write_summary(output_root, protocol, summaries)
+        current_throttled = _get_throttled()
+        if _must_pause_after_run(summaries[-1], current_throttled=current_throttled):
+            protocol["status"] = f"manual_pause_after_{label}"
+            protocol["stop_reason"] = _terminal_reason(
+                summaries[-1],
+                current_throttled=current_throttled,
+            )
+            _write_terminal_marker(output_root, protocol["stop_reason"])
+            _write_json(output_root / "m3_protocol.json", protocol)
+            _write_summary(output_root, protocol, summaries)
+            print(json.dumps(protocol, indent=2))
+            print(f"summary_json={output_root / 'm3_summary.json'}")
+            return
 
     protocol["status"] = "complete"
     _write_json(output_root / "m3_protocol.json", protocol)
@@ -237,6 +262,69 @@ def _ensure_backends(m0_config: str) -> None:
     raise SystemExit("q8/q4 backends did not become healthy")
 
 
+def _build_protocol(
+    *,
+    args: argparse.Namespace,
+    output_root: Path,
+    status: str,
+    ceiling_c: float | None,
+    temp_down_c: float | None,
+) -> dict[str, Any]:
+    return {
+        "schema": "thermal-guardian-m3-protocol-v1",
+        "status": status,
+        "output_root": str(output_root),
+        "arrival_interval_sec": args.arrival_interval_sec,
+        "smoke_duration_sec": args.smoke_duration_sec,
+        "duration_sec": args.duration_sec,
+        "safety_temp_c": args.safety_temp_c,
+        "max_start_temp_c": args.max_start_temp_c,
+        "ceiling_c": ceiling_c,
+        "temp_down_c": temp_down_c,
+        "fan_off_confirmed": args.fan_off_confirmed,
+        "power_logging": "not_used",
+        "claim_note": (
+            "M3 tests thermal continuity under fan-off stress. It does not claim "
+            "hardware wear reduction, lifespan improvement, or energy efficiency."
+        ),
+    }
+
+
+def _is_complete_run(run_dir: Path) -> bool:
+    manifest_path = run_dir / "manifest.json"
+    if not manifest_path.exists():
+        return False
+    try:
+        manifest = _read_json(manifest_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    if manifest.get("finished_ts") is None:
+        return False
+    if not (run_dir / "telemetry.csv").exists():
+        return False
+    if not manifest.get("safety_stop") and not (run_dir / "requests.csv").exists():
+        return False
+    if manifest.get("mode") == "controller" and not (
+        run_dir / "router_logs" / "events.csv"
+    ).exists():
+        return False
+    return True
+
+
+def _reject_incomplete_run(run_dir: Path) -> None:
+    if not run_dir.exists():
+        return
+    try:
+        has_files = any(run_dir.iterdir())
+    except OSError:
+        has_files = True
+    if has_files:
+        raise SystemExit(
+            f"incomplete existing run directory: {run_dir}. "
+            "Use a fresh --output-root or inspect/rename the partial run before resuming."
+        )
+
+
 def _run_m2_condition(
     *,
     label: str,
@@ -251,9 +339,10 @@ def _run_m2_condition(
     prompt_id_prefix: str,
 ) -> Path:
     run_dir = output_root / label
-    if (run_dir / "manifest.json").exists():
+    if _is_complete_run(run_dir):
         print(f"skip existing run: {run_dir}")
         return run_dir
+    _reject_incomplete_run(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     _wait_for_start_gate(
         run_dir=run_dir,
@@ -307,9 +396,10 @@ def _run_controller_condition(
     temp_down_c: float,
 ) -> Path:
     run_dir = output_root / label
-    if (run_dir / "manifest.json").exists():
+    if _is_complete_run(run_dir):
         print(f"skip existing run: {run_dir}")
         return run_dir
+    _reject_incomplete_run(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     _wait_for_start_gate(
         run_dir=run_dir,
@@ -369,6 +459,40 @@ def _run_controller_condition(
             router.wait(timeout=5)
         router_stdout.close()
     return run_dir
+
+
+def _q4_smoke_failed(summary: RunSummary) -> bool:
+    return summary.safety_stop or summary.throttle_seen or not summary.survived_full_window
+
+
+def _must_pause_after_run(summary: RunSummary, *, current_throttled: str) -> bool:
+    return summary.safety_stop or summary.throttle_seen or current_throttled != "0x0"
+
+
+def _terminal_reason(summary: RunSummary, *, current_throttled: str) -> str:
+    parts = [
+        f"label={summary.label}",
+        f"mode={summary.mode}",
+        f"safety_stop={str(summary.safety_stop).lower()}",
+        f"safety_reason={summary.safety_reason or 'none'}",
+        f"throttle_seen={str(summary.throttle_seen).lower()}",
+        f"first_throttled_hex={summary.first_throttled_hex or 'none'}",
+        f"final_throttled_hex={summary.final_throttled_hex or 'none'}",
+        f"current_get_throttled={current_throttled}",
+        f"survived_full_window={str(summary.survived_full_window).lower()}",
+    ]
+    if current_throttled != "0x0":
+        parts.append(
+            "next_step=reboot Pi before the next arm because get_throttled sticky bits "
+            "can remain set until reboot"
+        )
+    else:
+        parts.append("next_step=manual review before continuing")
+    return "; ".join(parts)
+
+
+def _write_terminal_marker(output_root: Path, reason: str) -> None:
+    (output_root / "manual_pause_required.txt").write_text(reason + "\n", encoding="utf-8")
 
 
 def _write_router_config(
@@ -456,6 +580,12 @@ def summarize_run(
         for row in telemetry
         if row.get("throttled_hex")
     ]
+    throttled_values = [row["throttled_hex"] for row in telemetry if row.get("throttled_hex")]
+    first_throttled_hex = next(
+        (value for value in throttled_values if int(value, 16) != 0),
+        None,
+    )
+    final_throttled_hex = throttled_values[-1] if throttled_values else None
 
     time_to_ceiling = _first_elapsed_at_or_above(telemetry, ceiling_c)
     time_to_throttle = _first_elapsed_throttled(telemetry)
@@ -504,6 +634,8 @@ def summarize_run(
         seconds_above_ceiling=seconds_above_ceiling,
         seconds_throttled=seconds_throttled,
         throttle_seen=any(throttled_flags),
+        first_throttled_hex=first_throttled_hex,
+        final_throttled_hex=final_throttled_hex,
         safety_stop=safety_stop,
         safety_reason=str(manifest.get("safety_reason") or ""),
         survived_full_window=survived_full_window,

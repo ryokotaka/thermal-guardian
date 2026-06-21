@@ -58,6 +58,8 @@ Secondary observation:
 - **Duration:** a fixed window (e.g. 1200 s) or until a safety stop, whichever
   comes first.
 - **Start gate:** each run waits for CPU temp <= 50 C and `get_throttled = 0x0`.
+  If a run changes `get_throttled`, the next arm must not start automatically:
+  Raspberry Pi sticky bits can remain set until reboot.
 - **Repetitions:** N=1 smoke first; if the effect appears, N=3.
 - **Power logging:** optional. Do not make USB power-meter readings part of the
   pass/fail result unless the question changes to energy efficiency.
@@ -87,8 +89,11 @@ between runs.
 ## Safety rules (mandatory)
 
 - Hard safety stop at `safety_temp_c` (<= 82 C) or on any `get_throttled` change.
+- Record the exact `get_throttled` hex value. Low-voltage and thermal bits are
+  different evidence; do not collapse them into a generic "thermal" failure.
 - A safety stop on `fixed_q8` **is a valid result, not a failure** — record it and
-  do not push further.
+  do not push further. If `get_throttled` is no longer `0x0`, reboot before any
+  next arm.
 - Keep the heatsink on. Do not run fan-off unattended.
 - Minimize the number of fan-off runs; cool fully between them.
 
