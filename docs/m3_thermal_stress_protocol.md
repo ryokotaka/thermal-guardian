@@ -72,9 +72,10 @@ Fixed conditions for the accepted N=3 run:
 Controller details, median across N=3: `q4_fraction = 0.781`,
 `switch_to_q4 = 7`, and `switch_to_q8 = 6`.
 
-`controller_002` is retained in the ignored data tree for audit, but excluded
-from this table because external airflow likely cooled the chip mid-run. The
-aggregate above uses `controller_002_rerun` instead.
+`q8_fixed_002` and `controller_002` are retained in the ignored data tree for
+audit, but excluded from this table because their telemetry was likely affected
+by unintended external airflow. The aggregate above uses `q8_fixed_002_rerun`
+and `controller_002_rerun` instead.
 
 ![Fan-off thermal-stress N=3 summary: fixed Q8 throttled in 3/3 runs, while the controller and fixed Q4 completed 3/3 full windows](assets/m3_thermal_continuity.svg)
 
