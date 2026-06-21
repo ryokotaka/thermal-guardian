@@ -157,7 +157,23 @@ def main() -> None:
         print(f"summary_json={output_root / 'm3_summary.json'}")
         return
 
-    ceiling_c = _choose_ceiling(args=args, q4_smoke_summary=q4_smoke_summary)
+    try:
+        ceiling_c = _choose_ceiling(args=args, q4_smoke_summary=q4_smoke_summary)
+    except SystemExit as exc:
+        protocol = _build_protocol(
+            args=args,
+            output_root=output_root,
+            status="q4_ceiling_invalid",
+            ceiling_c=None,
+            temp_down_c=None,
+        )
+        protocol["stop_reason"] = str(exc)
+        _write_terminal_marker(output_root, protocol["stop_reason"])
+        _write_json(output_root / "m3_protocol.json", protocol)
+        _write_summary(output_root, protocol, summaries)
+        print(json.dumps(protocol, indent=2))
+        print(f"summary_json={output_root / 'm3_summary.json'}")
+        return
     temp_down_c = ceiling_c - args.temp_down_delta_c
     if temp_down_c >= ceiling_c:
         raise SystemExit("computed temp_down_c must be below ceiling")
