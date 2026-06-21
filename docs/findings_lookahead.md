@@ -17,8 +17,11 @@
 > reviewers can follow the chronological run log, tables, and evidence hashes
 > below, ending in the author's **Finding** and **Implication**.*
 
-This notebook records the questions, methods, results, and interpretation
-of the look-ahead experiments.
+> **Working doc.** The "question → measurement → finding → implication" log for the
+> look-ahead investigation. The *question* and *measurement* sections record the
+> apparatus, protocol, plots, and derived numbers as they were run; the **finding
+> and implication are the author's reading** of that data. Once a finding is backed
+> by reproducible data, it is lifted into the README.
 
 **Status (2026-06-20):** complete through three results — (1) a closed-loop
 measurement counterexample; (2) at matched Q4 time, the look-ahead thermal edge
@@ -82,7 +85,7 @@ Optional, to quantify τ cleanly: one open-loop heating run from cold under fixe
 Q8 load to the plateau (no switching), so the slope/τ estimate is not truncated
 by the switch.
 
-**Analysis:**
+**Analysis** (derives numbers and draws the plot; no claims):
 
 ```bash
 python scripts/analyze_lookahead.py --temp-up 63 \
