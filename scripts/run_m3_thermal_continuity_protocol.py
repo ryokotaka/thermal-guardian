@@ -90,6 +90,7 @@ def main() -> None:
     parser.add_argument("--safety-temp-c", type=float, default=82.0)
     parser.add_argument("--min-start-temp-c", type=float, default=None)
     parser.add_argument("--max-start-temp-c", type=float, default=50.0)
+    parser.add_argument("--start-gate-poll-sec", type=float, default=10.0)
     parser.add_argument("--cooldown-timeout-sec", type=float, default=1800.0)
     parser.add_argument(
         "--pmic-log",
@@ -126,6 +127,8 @@ def main() -> None:
         and args.min_start_temp_c > args.max_start_temp_c
     ):
         raise SystemExit("--min-start-temp-c must be <= --max-start-temp-c")
+    if args.start_gate_poll_sec <= 0:
+        raise SystemExit("--start-gate-poll-sec must be positive")
 
     output_root = Path(args.output_root or f"data/m2/{args.date}/m3_thermal_continuity")
     output_root.mkdir(parents=True, exist_ok=True)
@@ -143,6 +146,7 @@ def main() -> None:
         safety_temp_c=args.safety_temp_c,
         min_start_temp_c=args.min_start_temp_c,
         max_start_temp_c=args.max_start_temp_c,
+        start_gate_poll_sec=args.start_gate_poll_sec,
         cooldown_timeout_sec=args.cooldown_timeout_sec,
         pmic_log=args.pmic_log,
         pmic_interval_sec=args.pmic_interval_sec,
@@ -234,6 +238,7 @@ def main() -> None:
                 safety_temp_c=args.safety_temp_c,
                 min_start_temp_c=args.min_start_temp_c,
                 max_start_temp_c=args.max_start_temp_c,
+                start_gate_poll_sec=args.start_gate_poll_sec,
                 cooldown_timeout_sec=args.cooldown_timeout_sec,
                 pmic_log=args.pmic_log,
                 pmic_interval_sec=args.pmic_interval_sec,
@@ -251,6 +256,7 @@ def main() -> None:
                 safety_temp_c=args.safety_temp_c,
                 min_start_temp_c=args.min_start_temp_c,
                 max_start_temp_c=args.max_start_temp_c,
+                start_gate_poll_sec=args.start_gate_poll_sec,
                 cooldown_timeout_sec=args.cooldown_timeout_sec,
                 pmic_log=args.pmic_log,
                 pmic_interval_sec=args.pmic_interval_sec,
@@ -325,6 +331,7 @@ def _build_protocol(
         "safety_temp_c": args.safety_temp_c,
         "min_start_temp_c": args.min_start_temp_c,
         "max_start_temp_c": args.max_start_temp_c,
+        "start_gate_poll_sec": args.start_gate_poll_sec,
         "ceiling_c": ceiling_c,
         "temp_down_c": temp_down_c,
         "fan_off_confirmed": args.fan_off_confirmed,
@@ -383,6 +390,7 @@ def _run_m2_condition(
     safety_temp_c: float,
     min_start_temp_c: float | None,
     max_start_temp_c: float,
+    start_gate_poll_sec: float,
     cooldown_timeout_sec: float,
     pmic_log: bool,
     pmic_interval_sec: float,
@@ -398,6 +406,7 @@ def _run_m2_condition(
         run_dir=run_dir,
         min_start_temp_c=min_start_temp_c,
         max_start_temp_c=max_start_temp_c,
+        start_gate_poll_sec=start_gate_poll_sec,
         cooldown_timeout_sec=cooldown_timeout_sec,
     )
     with (run_dir / "m2_run.stdout.log").open("w", encoding="utf-8") as stdout:
@@ -448,6 +457,7 @@ def _run_controller_condition(
     safety_temp_c: float,
     min_start_temp_c: float | None,
     max_start_temp_c: float,
+    start_gate_poll_sec: float,
     cooldown_timeout_sec: float,
     pmic_log: bool,
     pmic_interval_sec: float,
@@ -464,6 +474,7 @@ def _run_controller_condition(
         run_dir=run_dir,
         min_start_temp_c=min_start_temp_c,
         max_start_temp_c=max_start_temp_c,
+        start_gate_poll_sec=start_gate_poll_sec,
         cooldown_timeout_sec=cooldown_timeout_sec,
     )
     router_config = _write_router_config(
@@ -712,6 +723,7 @@ def _wait_for_start_gate(
     run_dir: Path,
     min_start_temp_c: float | None,
     max_start_temp_c: float,
+    start_gate_poll_sec: float,
     cooldown_timeout_sec: float,
 ) -> None:
     deadline = time.time() + cooldown_timeout_sec
@@ -761,7 +773,7 @@ def _wait_for_start_gate(
             f"throttled={throttled} {temp_target}",
             flush=True,
         )
-        time.sleep(10)
+        time.sleep(start_gate_poll_sec)
 
 
 def summarize_run(
