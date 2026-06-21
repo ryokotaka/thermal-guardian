@@ -1,11 +1,10 @@
-# M3 Thermal-continuity protocol and preliminary result
+# M3 Thermal-continuity protocol and replicated result
 
 > **What this is:** an experiment to test whether graceful degradation
 > actually pays off: under a thermal stress that fixed Q8 cannot sustain, can the
 > controller step down to Q4, avoid throttle / safety-stop, and keep serving the
 > same open-loop demand? **Who it's for:** anyone judging whether the controller
-> is worth its cost. **Status:** one fan-off N=1 pilot has run; replication is
-> still needed before treating it as a headline result.
+> is worth its cost. **Status:** fan-off N=3 completed on 2026-06-21.
 
 ## Why this experiment
 
@@ -41,52 +40,56 @@ Secondary observation:
   continuity, not J/token or watts.
 - Anything beyond this device, prompt, cooling condition, and ceiling.
 
-## Preliminary N=1 result (2026-06-21)
+## N=3 result (2026-06-21)
 
-This pilot used the active fan disconnected and the heatsink still attached.
-Power was not recorded because the M3 question is thermal continuity, not
-J/token. Raw CSVs and logs stay under ignored `data/` paths.
+This run used the active fan disconnected and the heatsink still attached.
+Airflow around the board was blocked after an earlier pilot appeared sensitive
+to ambient airflow. PMIC power was logged as auxiliary context, but power is not
+part of the M3 pass/fail result. Raw CSVs and logs stay under ignored `data/`
+paths.
 
 Before the comparison, a Q4 smoke run checked that the fixed load was viable:
 with `arrival_interval_sec = 6.0`, Q4 completed 600 s / 100 requests with
 `get_throttled = 0x0`. A heavier 4 s arrival interval was rejected first because
 Q4 itself reached 79.0 C, leaving no clean controller ceiling below the cap.
 
-Fixed conditions for the accepted N=1 pilot:
+Fixed conditions for the accepted N=3 run:
 
 - `arrival_interval_sec = 6.0`
 - run window `1200 s`
-- start gate `temp <= 60 C` and `get_throttled = 0x0`
+- start gate `get_throttled = 0x0`; accepted run start temperatures ranged from
+  55.4 to 58.7 C. The gate was adjusted during the run because the fan-off,
+  wind-blocked idle band did not reliably return to the original lower window.
 - safety stop `temp >= 82 C` or any `get_throttled` change
-- controller ceiling `temp_up_c = 77.7 C`, `temp_down_c = 73.7 C`
+- controller ceiling `temp_up_c = 71.1 C`, `temp_down_c = 67.1 C`
 
-| Arm | Completed requests | Peak temp (C) | Time to throttle | Throttle hex | Safety stop | Full window |
+| Arm | N | Completed requests median | Peak temp median (C) | Throttle seen | Safety stop | Full window |
 | --- | ---: | ---: | ---: | :---: | :---: | :---: |
-| `q8_fixed_001` | 57 | 80.7 | 334.373 s | `0x80000` | Yes | No |
-| `controller_001` | 200 | 80.7 | - | `0x0` | No | Yes |
-| `q4_fixed_001` | 200 | 75.7 | - | `0x0` | No | Yes |
+| `q8_fixed` | 3 | 100 | 81.2 | 3/3 (`0x80000`) | 3/3 | 0/3 |
+| `controller` | 3 | 200 | 77.4 | 0/3 | 0/3 | 3/3 |
+| `q4_fixed` | 3 | 200 | 79.0 | 0/3 | 0/3 | 3/3 |
 
-Controller details: `q4_fraction = 0.422`, `switch_to_q4 = 24`,
-`switch_to_q8 = 23`, and `cooldown_blocked = 52`.
+Controller details, median across N=3: `q4_fraction = 0.737`,
+`switch_to_q4 = 6`, and `switch_to_q8 = 5`.
+
+![Fan-off thermal-stress N=3 summary: fixed Q8 throttled in 3/3 runs, while the controller and fixed Q4 completed 3/3 full windows](assets/m3_thermal_continuity.svg)
 
 Interpretation, kept deliberately narrow:
 
-- This is a direct N=1 payoff case: under the same fan-off open-loop demand,
-  fixed Q8 hit the Raspberry Pi sticky soft-temperature throttle bit, while the
-  controller kept serving the full window.
-- It is not yet a replicated result. Do not claim fan-off long-run stability,
-  optimal thresholds, output quality, hardware-wear reduction, or energy
-  efficiency from this run.
-- The controller still peaked at 80.7 C and switched often, so the next
-  engineering question is smoother anti-flap behavior under the same continuity
-  constraint.
+- This is a direct replicated payoff case: under the same fan-off open-loop
+  demand, fixed Q8 hit the Raspberry Pi sticky soft-temperature throttle bit in
+  3/3 runs, while the controller kept serving the full window in 3/3 runs.
+- This run is not evidence of fan-off long-run stability, optimal thresholds,
+  output quality, hardware-wear reduction, or energy efficiency.
+- The controller peaked above its 71.1 C ceiling in all runs, so the next
+  engineering question is more thermal margin (switch earlier or lower the
+  ceiling), not fewer switches: with independent requests and both models resident,
+  frequent return to Q8 is cheap and maximizes quality.
 
 Evidence package on the Pi:
 
 ```text
-data/m2/2026-06-21/m3_thermal_continuity_arrival6_start60/
-data/m2/2026-06-21/m3_thermal_continuity_arrival6_start60_artifacts_2026-06-21.tar.gz
-sha256: af08275bcefff586907c94b79d85bce73e0d4e7c80435683583201dd52b4d585
+data/m2/2026-06-21/m3_thermal_continuity_arrival6_windblocked_start49_51_pmic/
 ```
 
 ## Fixed conditions
