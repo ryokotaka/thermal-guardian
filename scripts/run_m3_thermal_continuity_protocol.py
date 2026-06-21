@@ -649,6 +649,18 @@ def _pmic_loop(
         stop_event.wait(interval_sec)
 
 
+def _append_csv_rows(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    exists = path.exists() and path.stat().st_size > 0
+    with path.open("a", encoding="utf-8", newline="") as fp:
+        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        if not exists:
+            writer.writeheader()
+        writer.writerows(rows)
+
+
 def _read_pmic_rows(*, label: str, start_ts: float) -> list[dict[str, str]]:
     ts = time.time()
     completed = subprocess.run(
