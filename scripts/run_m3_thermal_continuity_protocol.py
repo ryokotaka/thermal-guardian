@@ -204,6 +204,7 @@ def main() -> None:
             # Keep the Step 0 smoke separate from the fixed-Q4 reference because
             # it may use a shorter duration; do not silently reuse it.
             pass
+        run_was_preexisting = _is_complete_run(output_root / label)
         if mode == "controller":
             run_dir = _run_controller_condition(
                 label=label,
@@ -241,7 +242,11 @@ def main() -> None:
         )
         _write_summary(output_root, protocol, summaries)
         current_throttled = _get_throttled()
-        if _must_pause_after_run(summaries[-1], current_throttled=current_throttled):
+        if _must_pause_after_run(
+            summaries[-1],
+            current_throttled=current_throttled,
+            run_was_preexisting=run_was_preexisting,
+        ):
             protocol["status"] = f"manual_pause_after_{label}"
             protocol["stop_reason"] = _terminal_reason(
                 summaries[-1],
@@ -485,8 +490,17 @@ def _q4_smoke_failed(summary: RunSummary) -> bool:
     return summary.safety_stop or summary.throttle_seen or not summary.survived_full_window
 
 
-def _must_pause_after_run(summary: RunSummary, *, current_throttled: str) -> bool:
-    return summary.safety_stop or summary.throttle_seen or current_throttled != "0x0"
+def _must_pause_after_run(
+    summary: RunSummary,
+    *,
+    current_throttled: str,
+    run_was_preexisting: bool,
+) -> bool:
+    if current_throttled != "0x0":
+        return True
+    if run_was_preexisting:
+        return False
+    return summary.safety_stop or summary.throttle_seen
 
 
 def _terminal_reason(summary: RunSummary, *, current_throttled: str) -> str:
