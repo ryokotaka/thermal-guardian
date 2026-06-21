@@ -136,7 +136,7 @@ Measured facts:
 - `controller` had better median J/token than `q8_fixed`.
 - `controller` did not beat `q4_fixed` on median latency, token/s, or J/token.
 
-Safe conclusion:
+Supported conclusion:
 
 ```text
 The implementation can run Q8/Q4 llama-server processes on Raspberry Pi 5,
@@ -146,9 +146,9 @@ fixed Q4 was the best performer; the controller improved over fixed Q8 but did
 not outperform fixed Q4.
 ```
 
-## What Not To Claim
+## What this does not show
 
-Do not claim:
+These runs do not show:
 
 - the controller is the fastest option
 - the controller is the most energy-efficient option
