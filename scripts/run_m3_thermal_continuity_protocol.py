@@ -18,6 +18,7 @@ import re
 import socket
 import subprocess
 import sys
+import threading
 import time
 from typing import Any
 
@@ -87,8 +88,15 @@ def main() -> None:
     parser.add_argument("--smoke-duration-sec", type=float, default=600.0)
     parser.add_argument("--duration-sec", type=float, default=1200.0)
     parser.add_argument("--safety-temp-c", type=float, default=82.0)
+    parser.add_argument("--min-start-temp-c", type=float, default=None)
     parser.add_argument("--max-start-temp-c", type=float, default=50.0)
     parser.add_argument("--cooldown-timeout-sec", type=float, default=1800.0)
+    parser.add_argument(
+        "--pmic-log",
+        action="store_true",
+        help="Log vcgencmd pmic_read_adc samples to each run's pmic.csv. Never gates pass/fail.",
+    )
+    parser.add_argument("--pmic-interval-sec", type=float, default=2.0)
     parser.add_argument("--ceiling-c", type=float, default=None)
     parser.add_argument("--ceiling-margin-c", type=float, default=3.0)
     parser.add_argument("--min-ceiling-c", type=float, default=65.0)
@@ -111,6 +119,13 @@ def main() -> None:
         raise SystemExit("Refusing to run fan-off M3 without --fan-off-confirmed.")
     if args.n <= 0:
         raise SystemExit("--n must be positive")
+    if args.pmic_interval_sec <= 0:
+        raise SystemExit("--pmic-interval-sec must be positive")
+    if (
+        args.min_start_temp_c is not None
+        and args.min_start_temp_c > args.max_start_temp_c
+    ):
+        raise SystemExit("--min-start-temp-c must be <= --max-start-temp-c")
 
     output_root = Path(args.output_root or f"data/m2/{args.date}/m3_thermal_continuity")
     output_root.mkdir(parents=True, exist_ok=True)
@@ -126,8 +141,11 @@ def main() -> None:
         duration_sec=args.smoke_duration_sec,
         arrival_interval_sec=args.arrival_interval_sec,
         safety_temp_c=args.safety_temp_c,
+        min_start_temp_c=args.min_start_temp_c,
         max_start_temp_c=args.max_start_temp_c,
         cooldown_timeout_sec=args.cooldown_timeout_sec,
+        pmic_log=args.pmic_log,
+        pmic_interval_sec=args.pmic_interval_sec,
         prompt_id_prefix="m3-smoke",
     )
     q4_smoke_summary = summarize_run(
@@ -214,8 +232,11 @@ def main() -> None:
                 duration_sec=args.duration_sec,
                 arrival_interval_sec=args.arrival_interval_sec,
                 safety_temp_c=args.safety_temp_c,
+                min_start_temp_c=args.min_start_temp_c,
                 max_start_temp_c=args.max_start_temp_c,
                 cooldown_timeout_sec=args.cooldown_timeout_sec,
+                pmic_log=args.pmic_log,
+                pmic_interval_sec=args.pmic_interval_sec,
                 ceiling_c=ceiling_c,
                 temp_down_c=temp_down_c,
             )
@@ -228,8 +249,11 @@ def main() -> None:
                 duration_sec=args.duration_sec,
                 arrival_interval_sec=args.arrival_interval_sec,
                 safety_temp_c=args.safety_temp_c,
+                min_start_temp_c=args.min_start_temp_c,
                 max_start_temp_c=args.max_start_temp_c,
                 cooldown_timeout_sec=args.cooldown_timeout_sec,
+                pmic_log=args.pmic_log,
+                pmic_interval_sec=args.pmic_interval_sec,
                 prompt_id_prefix="m3",
             )
         summaries.append(
@@ -299,11 +323,13 @@ def _build_protocol(
         "smoke_duration_sec": args.smoke_duration_sec,
         "duration_sec": args.duration_sec,
         "safety_temp_c": args.safety_temp_c,
+        "min_start_temp_c": args.min_start_temp_c,
         "max_start_temp_c": args.max_start_temp_c,
         "ceiling_c": ceiling_c,
         "temp_down_c": temp_down_c,
         "fan_off_confirmed": args.fan_off_confirmed,
-        "power_logging": "not_used",
+        "power_logging": "pmic_read_adc" if args.pmic_log else "not_used",
+        "pmic_interval_sec": args.pmic_interval_sec if args.pmic_log else None,
         "claim_note": (
             "M3 tests thermal continuity under fan-off stress. It does not claim "
             "hardware wear reduction, lifespan improvement, or energy efficiency."
@@ -355,8 +381,11 @@ def _run_m2_condition(
     duration_sec: float,
     arrival_interval_sec: float,
     safety_temp_c: float,
+    min_start_temp_c: float | None,
     max_start_temp_c: float,
     cooldown_timeout_sec: float,
+    pmic_log: bool,
+    pmic_interval_sec: float,
     prompt_id_prefix: str,
 ) -> Path:
     run_dir = output_root / label
@@ -367,6 +396,7 @@ def _run_m2_condition(
     run_dir.mkdir(parents=True, exist_ok=True)
     _wait_for_start_gate(
         run_dir=run_dir,
+        min_start_temp_c=min_start_temp_c,
         max_start_temp_c=max_start_temp_c,
         cooldown_timeout_sec=cooldown_timeout_sec,
     )
@@ -394,10 +424,13 @@ def _run_m2_condition(
             "--prompt-id-prefix",
             prompt_id_prefix,
         ]
-        result = subprocess.run(
-            command,
+        result = _run_with_optional_pmic_log(
+            command=command,
             stdout=stdout,
-            stderr=subprocess.STDOUT,
+            run_dir=run_dir,
+            label=label,
+            enabled=pmic_log,
+            interval_sec=pmic_interval_sec,
         )
     if result.returncode != 0 and not _is_complete_run(run_dir):
         raise subprocess.CalledProcessError(result.returncode, command)
@@ -413,8 +446,11 @@ def _run_controller_condition(
     duration_sec: float,
     arrival_interval_sec: float,
     safety_temp_c: float,
+    min_start_temp_c: float | None,
     max_start_temp_c: float,
     cooldown_timeout_sec: float,
+    pmic_log: bool,
+    pmic_interval_sec: float,
     ceiling_c: float,
     temp_down_c: float,
 ) -> Path:
@@ -426,6 +462,7 @@ def _run_controller_condition(
     run_dir.mkdir(parents=True, exist_ok=True)
     _wait_for_start_gate(
         run_dir=run_dir,
+        min_start_temp_c=min_start_temp_c,
         max_start_temp_c=max_start_temp_c,
         cooldown_timeout_sec=cooldown_timeout_sec,
     )
@@ -468,10 +505,13 @@ def _run_controller_condition(
                 "--prompt-id-prefix",
                 "m3",
             ]
-            result = subprocess.run(
-                command,
+            result = _run_with_optional_pmic_log(
+                command=command,
                 stdout=stdout,
-                stderr=subprocess.STDOUT,
+                run_dir=run_dir,
+                label=label,
+                enabled=pmic_log,
+                interval_sec=pmic_interval_sec,
             )
         if result.returncode != 0 and not _is_complete_run(run_dir):
             raise subprocess.CalledProcessError(result.returncode, command)
@@ -554,9 +594,111 @@ def _write_router_config(
     return path
 
 
+PMIC_FIELDS = ["ts", "elapsed_sec", "label", "rail", "value", "unit", "raw_line"]
+
+
+def _run_with_optional_pmic_log(
+    *,
+    command: list[str],
+    stdout: Any,
+    run_dir: Path,
+    label: str,
+    enabled: bool,
+    interval_sec: float,
+) -> subprocess.CompletedProcess[str]:
+    if not enabled:
+        return subprocess.run(command, stdout=stdout, stderr=subprocess.STDOUT)
+
+    stop_event = threading.Event()
+    thread = threading.Thread(
+        target=_pmic_loop,
+        kwargs={
+            "path": run_dir / "pmic.csv",
+            "error_path": run_dir / "pmic_error.txt",
+            "label": label,
+            "interval_sec": interval_sec,
+            "stop_event": stop_event,
+        },
+        name=f"thermal-guardian-m3-pmic-{label}",
+        daemon=True,
+    )
+    thread.start()
+    try:
+        return subprocess.run(command, stdout=stdout, stderr=subprocess.STDOUT)
+    finally:
+        stop_event.set()
+        thread.join(timeout=interval_sec + 1.0)
+
+
+def _pmic_loop(
+    *,
+    path: Path,
+    error_path: Path,
+    label: str,
+    interval_sec: float,
+    stop_event: threading.Event,
+) -> None:
+    start_ts = time.time()
+    while not stop_event.is_set():
+        try:
+            rows = _read_pmic_rows(label=label, start_ts=start_ts)
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+            error_path.write_text(f"{type(exc).__name__}: {exc}\n", encoding="utf-8")
+            return
+        _append_csv_rows(path, PMIC_FIELDS, rows)
+        stop_event.wait(interval_sec)
+
+
+def _read_pmic_rows(*, label: str, start_ts: float) -> list[dict[str, str]]:
+    ts = time.time()
+    completed = subprocess.run(
+        ["vcgencmd", "pmic_read_adc"],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=2.0,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout).strip()
+        raise RuntimeError(f"vcgencmd pmic_read_adc failed: {detail}")
+
+    rows: list[dict[str, str]] = []
+    for raw_line in completed.stdout.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) < 2 or "=" not in parts[-1]:
+            continue
+        rail = parts[0]
+        value_with_unit = parts[-1].split("=", 1)[1]
+        value_text = ""
+        unit = ""
+        for char in value_with_unit:
+            if char.isdigit() or char in ".-+":
+                value_text += char
+            else:
+                unit += char
+        if not value_text or not unit:
+            continue
+        rows.append(
+            {
+                "ts": f"{ts:.6f}",
+                "elapsed_sec": f"{max(0.0, ts - start_ts):.3f}",
+                "label": label,
+                "rail": rail,
+                "value": f"{float(value_text):.6f}",
+                "unit": unit,
+                "raw_line": line,
+            }
+        )
+    return rows
+
+
 def _wait_for_start_gate(
     *,
     run_dir: Path,
+    min_start_temp_c: float | None,
     max_start_temp_c: float,
     cooldown_timeout_sec: float,
 ) -> None:
@@ -569,8 +711,13 @@ def _wait_for_start_gate(
             "ts": time.time(),
             "temp_c": temp_c,
             "throttled_hex": throttled,
+            "min_start_temp_c": min_start_temp_c,
             "max_start_temp_c": max_start_temp_c,
-            "ok": temp_c <= max_start_temp_c and throttled == "0x0",
+            "ok": (
+                (min_start_temp_c is None or temp_c >= min_start_temp_c)
+                and temp_c <= max_start_temp_c
+                and throttled == "0x0"
+            ),
         }
         with log_path.open("a", encoding="utf-8") as fp:
             fp.write(json.dumps(sample) + "\n")
@@ -582,14 +729,24 @@ def _wait_for_start_gate(
             )
             return
         if time.time() >= deadline:
+            if min_start_temp_c is None:
+                temp_requirement = f"temp<={max_start_temp_c:.1f}C"
+            else:
+                temp_requirement = (
+                    f"{min_start_temp_c:.1f}C<=temp<={max_start_temp_c:.1f}C"
+                )
             raise SystemExit(
                 f"start gate timed out for {run_dir}: temp={temp_c:.1f}C "
-                f"throttled={throttled}, required temp<={max_start_temp_c:.1f}C "
+                f"throttled={throttled}, required {temp_requirement} "
                 "and throttled=0x0"
             )
+        if min_start_temp_c is None:
+            temp_target = f"target<={max_start_temp_c:.1f}C"
+        else:
+            temp_target = f"target={min_start_temp_c:.1f}-{max_start_temp_c:.1f}C"
         print(
             f"waiting for start gate: temp={temp_c:.1f}C "
-            f"throttled={throttled} target<={max_start_temp_c:.1f}C",
+            f"throttled={throttled} {temp_target}",
             flush=True,
         )
         time.sleep(10)
