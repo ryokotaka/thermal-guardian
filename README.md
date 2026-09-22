@@ -80,6 +80,8 @@ Repeat the same `curl` request. The response now comes from the fake Q8 backend.
 
 ## Run on a Raspberry Pi
 
+To try switching under load first, the [SwarmGo integration demo](https://github.com/ryokotaka/swarmgo-thermal-demo) runs three workers through this router with one command. It checks Q8 → Q4 → Q8 transitions using simulated temperatures and model replies.
+
 Install the package as above. You also need `vcgencmd`, a working `llama-server`
 build, and the Q8/Q4 GGUF model files. The measured setup used Raspberry Pi OS
 Bookworm 64-bit.
