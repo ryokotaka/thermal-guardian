@@ -1,272 +1,153 @@
 # Thermal Guardian
 
-**A thermal-aware LLM router for the Raspberry Pi 5.** When the chip heats up
-under sustained load, it trades model quality for continuity: it steps down from a
-higher-precision model (Q8) to a lighter one (Q4) so the service keeps running
-instead of throttling or shutting down, then restores Q8 once the device cools —
-all behind a standard OpenAI-compatible API.
+A temperature-aware LLM router for the Raspberry Pi 5. It starts with a Q8 model,
+uses a lighter Q4 version when the CPU gets hot, and returns to Q8 after it cools.
+Both models run locally behind one chat endpoint.
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
-![Target](https://img.shields.io/badge/target-Raspberry%20Pi%205-c51a4a.svg)
-![Status](https://img.shields.io/badge/status-research%20experiment-555.svg)
+I built this to test whether switching models could keep a small device serving
+requests under sustained heat. In the fan-off experiment, the controller completed
+all 200 requests in each of three runs. Fixed Q8 triggered the experiment's safety
+stop in all three. Fixed Q4 also completed every run; whether using Q8 some of the
+time improves the answers is still untested.
 
-> **Part of the Edge Guardian series** — resource-aware adaptive model switching on the Raspberry Pi 5. Sibling project: [Pose Guardian](https://github.com/ryokotaka/pose-guardian) (real-time pose estimation that sheds load under CPU/resource pressure).
+![Fan-off experiment: fixed Q8 reached the test safety stop; the controller and fixed Q4 completed all 200 requests](docs/assets/m3_thermal_continuity.svg)
 
----
+## Results
 
-## The payoff, in one picture
+The experiments used a Raspberry Pi 5 (4 GB) and Qwen2.5-1.5B-Instruct, served by
+`llama.cpp` as `Q8_0` and `Q4_K_M` GGUF models. Q8 and Q4 refer to different weight
+quantizations of the same model. Output quality was not evaluated.
 
-![Fan-off thermal stress on a Raspberry Pi 5: always running Q8 overheats and stops in 3/3 runs, while the controller drops to Q4 and serves the full window in 3/3 runs](docs/assets/m3_thermal_continuity.svg)
+**Fan disconnected, heatsink attached, airflow blocked:** one request every six
+seconds for 20 minutes, three runs per mode. Values below are medians.
 
-Under a deliberate thermal stress (active fan removed), **always running the
-high-quality Q8 model overheated and hit the Pi's throttle/shutdown protection,
-stopping in all 3 runs after about 100 of 200 requests.** The controller stepped
-down to the lighter Q4 model as it heated and **served all 200 requests for the
-full 20-minute window in all 3 runs**, with no throttle, the same survival as
-always-Q4, while reaching for Q8 quality whenever the chip was cool enough.
+| Mode | Completed requests | Peak CPU temperature | Runs reaching the safety stop |
+| --- | ---: | ---: | ---: |
+| Fixed Q8 | 100 / 200 | 81.2 °C | 3 / 3 |
+| Controller | 200 / 200 | 77.9 °C | 0 / 3 |
+| Fixed Q4 | 200 / 200 | 79.0 °C | 0 / 3 |
 
-That is the whole idea: **graceful degradation.** Give up some model quality to
-keep the service alive, instead of letting the hardware throttle everything or shut
-down. (Honest scope: this shows service *continuity*, not output quality: Q4's
-answers may be worse, and that is not measured here.)
+Fixed Q8 recorded `get_throttled=0x80000`, the
+[historical soft-temperature-limit flag](https://www.raspberrypi.com/documentation/computers/os.html#get_throttled),
+and the test harness stopped the load. This was a controlled stop, not an
+observed device shutdown. The controller spent about 78% of the time on Q4. Its
+77.9 °C median peak also exceeded the 71.1 °C switching threshold, so that threshold
+is not a temperature guarantee.
 
-## What it is
+Starts ranged from 55.4 to 58.7 °C; two runs affected by suspected external airflow
+were excluded and repeated. The [M3 protocol and results](docs/m3_thermal_stress_protocol.md)
+record those conditions and exclusions.
 
-A Raspberry Pi 5 can run a modern chat model locally, with no cloud. The catch is
-heat: under sustained load the chip warms up, and to protect itself it *throttles*
-(bluntly slows everything down) or, past a harder limit, shuts off. Thermal
-Guardian sits in front of two versions of the same model — a heavier, higher-quality
-**Q8** and a lighter, faster **Q4** — reads the chip's temperature, and switches to
-Q4 when things get hot and back to Q8 when they cool. Applications talk to it through
-the same API they would use for OpenAI, so adopting it can be as simple as changing
-the base URL.
+**With active cooling**, all five 30-minute runs per mode finished without a
+throttle flag or safety stop. Fixed Q4 had the best median speed and energy per
+token: 11.27 tok/s and 0.677 J/token, compared with the controller's 11.23 tok/s and
+0.731 J/token. Energy came from manual USB-meter readings for each run. These
+closed-loop runs sent the next request after the previous response, so faster
+modes completed more work. See the [fan-on results](docs/m2_full_fan_on_n5_results.md).
 
-The unfamiliar terms (Q8 / Q4 quantization, throttling, J/token, hysteresis) are
-explained in the [glossary](#plain-language-glossary).
+I also tried predicting temperature from its recent slope. At similar time spent
+on Q4, the median peak differed by only 0.6 °C from a lower-threshold reactive
+controller. That comparison did not establish a separate benefit from prediction.
+The [look-ahead notebook](docs/findings_lookahead.md) covers the controls and the
+trade-off between fewer switches and more time on Q4.
 
-## How it works
+## Try it locally
 
-```mermaid
-flowchart LR
-    Client["Client app<br/>(any OpenAI SDK)"]
-    Router["Thermal Guardian<br/>router"]
-    Decision{"Thermal controller<br/>hysteresis + cooldown"}
-    Monitor["Pi monitor<br/>temp / clock / throttle"]
-    Q8["Q8 server<br/>higher precision"]
-    Q4["Q4 server<br/>lighter fallback"]
-    Logs[("CSV logs<br/>requests / events / telemetry")]
-
-    Client -->|/v1/chat/completions| Router
-    Router --> Decision
-    Monitor --> Decision
-    Decision -->|cool enough| Q8
-    Decision -->|too hot| Q4
-    Router -.-> Logs
-```
-
-The controller is a small, deliberately boring two-state policy: start on **Q8**;
-switch to **Q4** when temperature rises past an upper threshold; switch back to
-**Q8** only after it falls below a *lower* threshold; and block rapid flip-flopping
-with a cooldown timer. Two thresholds (*hysteresis*) plus the cooldown stop it from
-chattering around a single trip point. Every decision — including switches blocked
-by cooldown — is written to CSV so a run can be audited afterward.
-
-## What I measured
-
-A working router is table stakes. The bar I set was to surface at least one finding
-that isn't obvious in advance, and to report each result honestly, including where
-the controller does *not* help. Each is framed as a question, a measurement, and a
-finding.
-
-### 1. Under thermal stress, does the controller keep serving? (the payoff)
-
-- **Measured:** with the fan removed and airflow blocked, three arms — fixed Q8,
-  fixed Q4, and the controller — under the same fixed open-loop request rate
-  (`arrival_interval_sec = 6`, 1200 s window). A Q4 smoke run first confirmed Q4
-  could survive the load. Starts were gated to 55–59 °C (not perfectly identical).
-- **Found:** fixed Q8 hit the Pi soft-temperature throttle bit (`0x80000`) and
-  stopped in **3/3** runs (median ~100 of 200 requests, peak ~81 °C). The controller
-  and fixed Q4 each completed all **200/200** requests for the full 1200 s in 3/3
-  runs with no throttle (controller median peak 77.9 °C, ~78% of the time on Q4).
-- **Implication:** the first replicated case where graceful degradation paid off:
-  *service continuity* where always-Q8 could not. It still overshot its 71.1 °C
-  target (reactive lag), so tighter thermal margin is the open engineering question.
-  See [`docs/m3_thermal_stress_protocol.md`](docs/m3_thermal_stress_protocol.md).
-
-### 2. With the fan on, is the controller even needed? (the honest baseline)
-
-![Raspberry Pi 5 fan-on N=5 summary: speed and energy by routing mode](docs/assets/m2_fan_on_n5_summary.svg)
-
-Five 30-minute runs per mode with active cooling, same workload, median of each run:
-
-| Mode | Speed (tok/s) — higher better | Energy (J/token) — lower better | Latency (ms) — lower better | Peak temp (°C) | Throttled | Safety stop |
-| --- | ---: | ---: | ---: | ---: | :---: | :---: |
-| `q8_fixed` — always the heavy model | 6.53 | 1.081 | 4133 | 65.3 | No | No |
-| `q4_fixed` — always the light model | **11.27** | **0.677** | **2661** | 68.1 | No | No |
-| `controller` — switches by temperature | 11.23 | 0.731 | 2671 | 68.1 | No | No |
-
-- **Found:** with the fan on, nothing throttled — not even fixed Q8 — so the
-  fallback was never required. Fixed Q4 was the best baseline; the controller
-  matched it within 0.4% on speed (it switches to Q4 and stays) and beat fixed Q8
-  (**+72% tokens/s, −32% J/token**), but did not beat Q4.
-- **Implication:** the controller is not a faster path than Q4 on an easy workload.
-  Its value is as a *measured fallback* for the cases the fan-on runs could not
-  create: a quality-sensitive workload where Q4 is not good enough, or thermal
-  stress that would throttle fixed Q8 (result 1). Full evidence:
-  [`docs/m2_full_fan_on_n5_results.md`](docs/m2_full_fan_on_n5_results.md).
-
-### 3. Does predicting the heat (look-ahead) beat just using Q4 more?
-
-I also tested a *predictive* controller that switches on the temperature forecast
-from the recent slope, and a *dwell* rule that commits to Q4 to reduce flapping.
-Both produced a useful negative result. Once the load was made fair (open-loop) and
-the comparison controlled for time spent on Q4, look-ahead's thermal edge **largely
-disappeared** (median peak 62.0 vs 62.6 °C): the lever was *time on the lighter
-model, not prediction.* The dwell rule cut model switches (36 → 7) only by spending
-more time on Q4, a trade-off rather than a free win. Full lab notebook, with figures:
-[`docs/findings_lookahead.md`](docs/findings_lookahead.md).
-
-## How it was evaluated
-
-The fan-on baseline came from the M2 protocol:
-
-- **Device:** Raspberry Pi 5 (4 GB), active cooler attached (fan-off for the stress test in result 1)
-- **Models:** Qwen2.5-1.5B, `Q8_0` vs `Q4_K_M` GGUF, served by `llama.cpp`
-- **Workload:** one fixed chat prompt, `temperature = 0`, `max_tokens = 64`
-- **Runs:** 1800 s per run, **N = 5** per condition, medians + IQR
-- **Power:** energy per token from manual USB power-meter readings (run-level)
-
-Across all 15 selected fan-on runs the controller switched Q8 → Q4 and back, and
-none throttled or hit a safety stop. What the project does *not* claim is under
-[Limitations](#limitations).
-
-## Try it locally (no Raspberry Pi needed)
-
-Local runs use fake backends, so you can explore the router on any machine.
+Requires Python 3.11 or newer. No model downloads or Raspberry Pi are needed for
+the demo.
 
 ```bash
+git clone https://github.com/ryokotaka/thermal-guardian.git
+cd thermal-guardian
+python3.11 -m venv .venv
+source .venv/bin/activate
 python -m pip install -e ".[dev]"
 python -m pytest
+python -m thermal_guardian.router --dry-run --fake-monitor
+```
 
-# fake Q8 + Q4 servers, then the router (add --dry-run to skip backends)
+In another terminal:
+
+```bash
+curl http://127.0.0.1:8080/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -H 'X-Edge-Prompt-Id: demo-001' \
+  -d '{"model":"thermal-guardian","messages":[{"role":"user","content":"Say hello."}],"stream":false}'
+```
+
+The response says `dry-run routed to q8`. `--dry-run` skips model inference;
+`--fake-monitor` supplies a constant simulated 40 °C reading. Neither demonstrates
+real thermal behavior. Requests and controller samples are written to
+`logs/requests.csv` and `logs/events.csv`.
+
+To try HTTP forwarding, run each of these commands in its own terminal with the
+virtual environment activated. Stop the dry-run router first.
+
+```bash
 python scripts/fake_llama_server.py --port 8081 --name q8
 python scripts/fake_llama_server.py --port 8082 --name q4
-python -m thermal_guardian.router --config config.example.json
+python -m thermal_guardian.router --config config.example.json --fake-monitor
 ```
+
+Repeat the same `curl` request; the reply now comes from the fake Q8 backend.
 
 ## Run on a Raspberry Pi
 
-<details>
-<summary>Expand for the full Pi workflow (model serving, runs, power summary)</summary>
-
-Local Pi configuration files are intentionally ignored by git. Copy the example
-configs and fill in local model paths and ports:
+Install the package as above. You also need `vcgencmd`, a working `llama-server`
+build, and the two GGUF model files. The measured setup used Raspberry Pi OS
+Bookworm 64-bit; model weights are not included.
 
 ```bash
 cp m0.example.json m0.local.json
-cp m2.example.json m2.local.json
-cp config.m2.fan_on.example.json config.m2.fan_on.local.json
+cp config.example.json config.local.json
 ```
 
-Start and check the Q8/Q4 servers:
+Edit `m0.local.json` with your `llama-server` executable and model paths. Check that
+the ports match `q8_url` and `q4_url` in `config.local.json`, then start the backends:
 
 ```bash
 python -m thermal_guardian.m0 start --config m0.local.json
 python -m thermal_guardian.m0 check --config m0.local.json
-python -m thermal_guardian.m0 chat-smoke \
-  --config m0.local.json \
-  --output data/m0/YYYY-MM-DD/chat_smoke.csv
+python -m thermal_guardian.router --config config.local.json
 ```
 
-Run an M2 comparison condition and join USB power readings:
+Use the same chat request from the local demo. Leave out `--fake-monitor` for real
+runs. If required telemetry is missing or malformed, the router returns HTTP 503
+instead of treating the device as cool. It resumes accepting requests when it can
+read telemetry again. The M2 experiment runner records a safety stop on telemetry
+failure.
 
-```bash
-python -m thermal_guardian.m2 run \
-  --config m2.local.json --mode controller \
-  --output-dir data/m2/YYYY-MM-DD/fan_on_full/controller_001 \
-  --duration-sec 1800 --cooling fan_on --prompt-id-prefix m2-full
+The default switch points are 70 °C for Q8 → Q4 and 60 °C for Q4 → Q8, with at least
+ten seconds between switches. The gap between thresholds prevents repeated
+switches around a single temperature. These defaults differ from the thresholds
+used in the experiments; use the linked protocols to reproduce them.
 
-python -m thermal_guardian.m2 power-summary \
-  --manual-power data/m2/YYYY-MM-DD/fan_on_full/manual_power_readings.csv \
-  --input data/m2/YYYY-MM-DD/fan_on_full/q8_fixed_001 \
-  --input data/m2/YYYY-MM-DD/fan_on_full/q4_fixed_001 \
-  --input data/m2/YYYY-MM-DD/fan_on_full/controller_001 \
-  --output data/m2/YYYY-MM-DD/fan_on_full/power_summary.csv
-```
+The [M0 checklist](docs/m0_checklist.md) covers model setup. The
+[M2 protocol](docs/m2_full_protocol.md) covers comparisons and power measurements.
+The [M3 protocol](docs/m3_thermal_stress_protocol.md) includes the fan-off start
+gates and stop rules; its 82 °C cap belongs to the test harness, not the router.
 
-</details>
+## Scope
 
-## Where to read more
+The implemented API is `POST /v1/chat/completions` with a buffered response.
+Non-streaming chat is the tested path; streaming, other OpenAI endpoints,
+authentication, and automatic retries to the other model are not implemented.
+The server binds to localhost by default.
 
-- **Fan-off thermal-continuity result and protocol** →
-  [`docs/m3_thermal_stress_protocol.md`](docs/m3_thermal_stress_protocol.md)
-- **Fan-on N=5 evidence behind the table** →
-  [`docs/m2_full_fan_on_n5_results.md`](docs/m2_full_fan_on_n5_results.md)
-- **The look-ahead and dwell investigation (lab notebook, with figures)** →
-  [`docs/findings_lookahead.md`](docs/findings_lookahead.md)
-- **Full evaluation protocol** →
-  [`docs/m2_full_protocol.md`](docs/m2_full_protocol.md)
-- **Every checked fact and the exact wording it supports** →
-  [`docs/evidence_log.md`](docs/evidence_log.md)
-- **Dated, approved project decisions** → [`DECISIONS.md`](DECISIONS.md)
+Both models stay loaded. Switching changes where the next request goes; it does
+not migrate an in-flight request or unload model weights. The controller uses
+temperature thresholds, with optional look-ahead and minimum Q4 residence time.
+It does not assess answer quality or guarantee a maximum CPU temperature.
 
-Raw CSVs, USB-meter photos, local configs, and archives stay out of git under
-ignored paths such as `data/` and `*.local.json`; evidence bundles are referenced by
-SHA-256 so a run can be tied to a specific package.
+These results cover one device, one prompt workload, and the cooling conditions
+above. Raw CSVs, meter photos, and local configs are excluded from this repository.
+The [evidence notes](docs/evidence_log.md) and linked experiment reports document
+the recorded results; some reports include hashes for locally held archives. The
+public repository alone is not enough to recompute every aggregate.
 
-```text
-src/thermal_guardian/
-  monitor.py      Raspberry Pi telemetry (temperature, clock, throttling)
-  controller.py   Q8/Q4 thermal state machine (hysteresis + cooldown)
-  router.py       OpenAI-compatible forwarding API
-  m0.py / m1.py / m2.py   bring-up, switch-event, and fixed-workload helpers
-  q4_budget.py    Q4-residence / switch-economy analysis
-```
-
-## Limitations
-
-- Output quality and LLM output safety were **not** evaluated; the results are about
-  thermal behavior and service continuity only.
-- With the fan on, fixed Q4 was the best baseline; the controller did not beat it.
-- The fan-off continuity result is N=3 on one workload and cooling setup, not
-  long-run stability, not a claim of optimal thresholds.
-- One simple prompt workload; thresholds were chosen for the fan-on evaluation.
-
-## Roadmap / open questions
-
-- **Thermal margin:** can earlier switching (look-ahead), a lower ceiling, or a
-  shorter cooldown keep the fan-off controller nearer its target while preserving
-  continuity? Switch *count* is cheap here: requests are independent and both models
-  stay resident, so returning to Q8 when cool is quality-seeking, not waste.
-- **Quality-sensitive workloads:** does the fallback help when Q4's output quality is
-  *not* acceptable for every prompt, and can a quality-aware policy beat fixed Q4?
-- **Energy:** does J/token break down non-linearly as temperature rises within a run?
-  This needs time-aligned power telemetry (PMIC), not just run-level USB totals.
-- **Bottleneck:** is the limit thermal headroom, CPU execution, or memory bandwidth?
-  Needs `perf` / STREAM-style measurement before any architecture claim.
-
-## Plain-language glossary
-
-<details>
-<summary>Quantization (Q8 / Q4), throttling, J/token, hysteresis</summary>
-
-- **Quantization, Q8 / Q4:** ways to store an AI model with more or fewer bits of
-  precision. **Q8** keeps more detail (heavier, slower, higher quality); **Q4** is
-  compressed (lighter, faster, slightly lower quality). Same model, two "weight
-  classes."
-- **Throttling:** a chip's self-protection: when it gets too hot it deliberately
-  slows down (and past a harder limit can shut off) to avoid damage.
-- **J/token:** joules of energy spent per generated word-piece. Lower is more
-  energy-efficient.
-- **Hysteresis:** using a higher threshold to switch *up* and a lower one to switch
-  *back*, so the system does not flip rapidly around a single point (like a
-  thermostat).
-
-</details>
+Related project: [Pose Guardian](https://github.com/ryokotaka/pose-guardian), which
+switches pose-estimation models under CPU and resource pressure.
 
 ## License
 
-Licensed under the Apache License 2.0 — see [`LICENSE`](LICENSE). Model weights are
-not included; third-party models and runtime dependencies are governed by their own
-licenses.
+[Apache 2.0](LICENSE). Third-party models and runtimes have their own licenses.

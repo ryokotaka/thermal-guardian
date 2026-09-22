@@ -14,7 +14,7 @@ from thermal_guardian.m2 import (
     run_m2,
     summarize_runs,
 )
-from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot
+from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot, MonitorUnavailableError
 from thermal_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
 
 
@@ -300,6 +300,46 @@ def test_run_m2_records_telemetry_safety_stop_before_requests(tmp_path) -> None:
         telemetry_rows = list(csv.DictReader(fp))
     assert telemetry_rows[0]["temp_c"] == "72.000"
     assert telemetry_rows[0]["throttled_hex"] == "0x80000"
+
+
+@pytest.mark.parametrize("successful_samples", [0, 1])
+def test_run_m2_stops_and_records_telemetry_failure(tmp_path, successful_samples) -> None:
+    class FailingMonitor:
+        calls = 0
+
+        def snapshot(self):
+            self.calls += 1
+            if self.calls > successful_samples:
+                raise MonitorUnavailableError("temperature unavailable")
+            return MonitorSnapshot(1.0, 40.0, 1_500_000_000, "0x0")
+
+    class Response:
+        status_code = 200
+        text = "ok"
+
+        def json(self):
+            return {"usage": {"completion_tokens": 1}}
+
+    class WorkingSession:
+        def post(self, *args, **kwargs):
+            return Response()
+
+    result = run_m2(
+        config=M2Config(request_count=3),
+        mode="q8_fixed",
+        output_dir=tmp_path,
+        session=WorkingSession(),
+        monitor=FailingMonitor(),
+        background_telemetry=False,
+    )
+
+    assert result.ok is False
+    assert len(result.request_rows) == successful_samples
+    assert len(result.telemetry_rows) == successful_samples
+    assert result.manifest["safety_stop"] is True
+    assert "telemetry unavailable" in result.manifest["safety_reason"]
+    saved = json.loads((tmp_path / "manifest.json").read_text())
+    assert saved["safety_stop"] is True
 
 
 def test_run_m2_can_stop_on_throttle_before_requests(tmp_path) -> None:

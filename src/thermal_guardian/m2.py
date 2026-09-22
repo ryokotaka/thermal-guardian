@@ -19,7 +19,7 @@ from typing import Any, Callable
 
 import requests
 
-from thermal_guardian.monitor import MonitorSnapshot, VcgencmdMonitor
+from thermal_guardian.monitor import MonitorSnapshot, MonitorUnavailableError, VcgencmdMonitor
 from thermal_guardian.router import CHAT_COMPLETIONS_PATH, PROMPT_ID_HEADER
 
 
@@ -328,6 +328,8 @@ def run_m2(
                 wait = (loop_start + sent * config.arrival_interval_sec) - monotonic_func()
                 if wait > 0:
                     sleep_func(wait)
+                if stop_event.is_set():
+                    break
                 if config.request_count is None and sent > 0 and monotonic_func() >= deadline:
                     break
 
@@ -638,8 +640,15 @@ def _sample_and_store_telemetry(
     start_ts: float,
     safety_reason: list[str],
     stop_event: threading.Event,
-) -> M2TelemetryRow:
-    snapshot: MonitorSnapshot = monitor.snapshot()
+) -> M2TelemetryRow | None:
+    try:
+        snapshot: MonitorSnapshot = monitor.snapshot()
+    except MonitorUnavailableError as exc:
+        with lock:
+            if not safety_reason:
+                safety_reason.append(f"telemetry unavailable: {exc}")
+        stop_event.set()
+        return None
     row = M2TelemetryRow(
         ts=snapshot.ts,
         elapsed_sec=max(0.0, snapshot.ts - start_ts),

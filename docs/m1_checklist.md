@@ -30,7 +30,7 @@ python -m thermal_guardian.router --config config.local.json
 For a local no-model run, use dry-run mode:
 
 ```bash
-python -m thermal_guardian.router --config config.example.json --dry-run
+python -m thermal_guardian.router --config config.example.json --dry-run --fake-monitor
 ```
 
 Send repeated OpenAI-compatible chat requests:

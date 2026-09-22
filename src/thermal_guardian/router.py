@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import argparse
 import json
+import logging
 import threading
 import time
 from typing import Any, Mapping
@@ -18,7 +19,7 @@ import requests
 from thermal_guardian.config import RouterConfig, load_config
 from thermal_guardian.controller import ControllerConfig, RouteTarget, ThermalController
 from thermal_guardian.logger import CsvLogger, RequestLogRow
-from thermal_guardian.monitor import VcgencmdMonitor
+from thermal_guardian.monitor import FakeMonitor, MonitorUnavailableError, VcgencmdMonitor
 
 
 CHAT_COMPLETIONS_PATH = "/v1/chat/completions"
@@ -43,7 +44,9 @@ class RouterRuntime:
         session: requests.Session | None = None,
     ) -> None:
         self.config = config
-        self.monitor = monitor or VcgencmdMonitor()
+        self.monitor = monitor if monitor is not None else (
+            FakeMonitor() if config.fake_monitor else VcgencmdMonitor()
+        )
         self.controller = controller or ThermalController(
             ControllerConfig(
                 temp_up_c=config.temp_up_c,
@@ -152,7 +155,12 @@ class RouterRuntime:
             return self._sample_controller_locked(time.monotonic())
 
     def _sample_controller_locked(self, sampled_at_monotonic: float) -> Any:
-        snapshot = self.monitor.snapshot()
+        try:
+            snapshot = self.monitor.snapshot()
+        except MonitorUnavailableError:
+            self._last_decision = None
+            self._last_sample_monotonic = None
+            raise
         decision = self.controller.evaluate(snapshot)
         self.logger.log_event(decision)
         self._last_decision = decision
@@ -161,7 +169,10 @@ class RouterRuntime:
 
     def _monitor_loop(self) -> None:
         while not self._stop_event.is_set():
-            self.sample_controller()
+            try:
+                self.sample_controller()
+            except MonitorUnavailableError as exc:
+                logging.getLogger(__name__).warning("%s", exc)
             if self._stop_event.wait(self.config.monitor_interval_sec):
                 break
 
@@ -182,6 +193,9 @@ class RoutingHandler(BaseHTTPRequestHandler):
             return
         except requests.RequestException as exc:
             self._send_json(HTTPStatus.BAD_GATEWAY, {"error": str(exc)})
+            return
+        except MonitorUnavailableError as exc:
+            self._send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": str(exc)})
             return
 
         self.send_response(response.status_code)
@@ -205,6 +219,8 @@ class RoutingHandler(BaseHTTPRequestHandler):
 
 def run_server(config: RouterConfig) -> None:
     runtime = RouterRuntime(config)
+    if config.fake_monitor:
+        print("Using simulated telemetry (40 C); real device temperature is not monitored.")
     runtime.start_background_monitor()
 
     class Handler(RoutingHandler):
@@ -226,6 +242,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Thermal Guardian routing server.")
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--fake-monitor", action="store_true",
+        help="Use simulated 40 C telemetry for local demos; disables hardware monitoring.",
+    )
     parser.add_argument("--min-residence-sec", type=float, default=None)
     args = parser.parse_args()
 
@@ -238,6 +258,8 @@ def _config_with_cli_overrides(config: RouterConfig, args: argparse.Namespace) -
     data = dict(config.__dict__)
     if args.dry_run:
         data["dry_run"] = True
+    if args.fake_monitor:
+        data["fake_monitor"] = True
     if args.min_residence_sec is not None:
         data["min_residence_sec"] = args.min_residence_sec
     return RouterConfig.from_dict(data)
