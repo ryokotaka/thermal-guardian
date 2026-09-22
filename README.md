@@ -1,60 +1,44 @@
 # Thermal Guardian
 
-A temperature-aware LLM router for the Raspberry Pi 5. It starts with a Q8 model,
-uses a lighter Q4 version when the CPU gets hot, and returns to Q8 after it cools.
-Both models run locally behind one chat endpoint.
+Thermal Guardian switches a Raspberry Pi 5's local LLM between higher-precision
+Q8 and lighter Q4 models as the CPU heats up and cools down. Applications use one
+chat endpoint while the router chooses which model serves the next request.
 
-I built this to test whether switching models could keep a small device serving
-requests under sustained heat. In the fan-off experiment, the controller completed
-all 200 requests in each of three runs. Fixed Q8 triggered the experiment's safety
-stop in all three. Fixed Q4 also completed every run; whether using Q8 some of the
-time improves the answers is still untested.
+**In a 20-minute fan-off experiment, the controller served all 200 requests in
+three out of three runs. Fixed Q8 reached the test's safety stop in every run,
+after a median of 100 requests.**
 
 ![Fan-off experiment: fixed Q8 reached the test safety stop; the controller and fixed Q4 completed all 200 requests](docs/assets/m3_thermal_continuity.svg)
 
-## Results
+## What switching changes
 
-The experiments used a Raspberry Pi 5 (4 GB) and Qwen2.5-1.5B-Instruct, served by
-`llama.cpp` as `Q8_0` and `Q4_K_M` GGUF models. Q8 and Q4 refer to different weight
-quantizations of the same model. Output quality was not evaluated.
+The router starts on Q8, moves to the lighter Q4 model when temperature rises,
+and returns to Q8 when the Pi cools. Both models stay loaded, so a switch changes
+the destination of the next request without restarting either backend.
 
-**Fan disconnected, heatsink attached, airflow blocked:** one request every six
-seconds for 20 minutes, three runs per mode. Values below are medians.
+I built this to explore model switching under sustained heat. The comparison
+uses Qwen2.5-1.5B-Instruct in two weight quantizations, `Q8_0` and `Q4_K_M`, served
+by `llama.cpp` on a Raspberry Pi 5 with 4 GB of RAM.
 
-| Mode | Completed requests | Peak CPU temperature | Runs reaching the safety stop |
+The fan-off test sent one request every six seconds for 20 minutes, with the
+heatsink attached and airflow blocked. Each mode ran three times:
+
+| Mode | Completed requests, median | Peak CPU temperature, median | Runs reaching the safety stop |
 | --- | ---: | ---: | ---: |
 | Fixed Q8 | 100 / 200 | 81.2 °C | 3 / 3 |
 | Controller | 200 / 200 | 77.9 °C | 0 / 3 |
 | Fixed Q4 | 200 / 200 | 79.0 °C | 0 / 3 |
 
-Fixed Q8 recorded `get_throttled=0x80000`, the
-[historical soft-temperature-limit flag](https://www.raspberrypi.com/documentation/computers/os.html#get_throttled),
-and the test harness stopped the load. This was a controlled stop, not an
-observed device shutdown. The controller spent about 78% of the time on Q4. Its
-77.9 °C median peak also exceeded the 71.1 °C switching threshold, so that threshold
-is not a temperature guarantee.
+The controller matched fixed Q4's completion rate while returning to Q8 during
+cooler periods. It spent about 78% of the time on Q4. These results measure
+service continuity; answer quality is a separate comparison still to make.
 
-Starts ranged from 55.4 to 58.7 °C; two runs affected by suspected external airflow
-were excluded and repeated. The [M3 protocol and results](docs/m3_thermal_stress_protocol.md)
-record those conditions and exclusions.
-
-**With active cooling**, all five 30-minute runs per mode finished without a
-throttle flag or safety stop. Fixed Q4 had the best median speed and energy per
-token: 11.27 tok/s and 0.677 J/token, compared with the controller's 11.23 tok/s and
-0.731 J/token. Energy came from manual USB-meter readings for each run. These
-closed-loop runs sent the next request after the previous response, so faster
-modes completed more work. See the [fan-on results](docs/m2_full_fan_on_n5_results.md).
-
-I also tried predicting temperature from its recent slope. At similar time spent
-on Q4, the median peak differed by only 0.6 °C from a lower-threshold reactive
-controller. That comparison did not establish a separate benefit from prediction.
-The [look-ahead notebook](docs/findings_lookahead.md) covers the controls and the
-trade-off between fewer switches and more time on Q4.
+[Experiment conditions and results](docs/m3_thermal_stress_protocol.md)
 
 ## Try it locally
 
-Requires Python 3.11 or newer. No model downloads or Raspberry Pi are needed for
-the demo.
+You can try the endpoint and routing logs without a Pi or model downloads.
+Requires Python 3.11 or newer.
 
 ```bash
 git clone https://github.com/ryokotaka/thermal-guardian.git
@@ -62,7 +46,6 @@ cd thermal-guardian
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
-python -m pytest
 python -m thermal_guardian.router --dry-run --fake-monitor
 ```
 
@@ -75,13 +58,15 @@ curl http://127.0.0.1:8080/v1/chat/completions \
   -d '{"model":"thermal-guardian","messages":[{"role":"user","content":"Say hello."}],"stream":false}'
 ```
 
-The response says `dry-run routed to q8`. `--dry-run` skips model inference;
-`--fake-monitor` supplies a constant simulated 40 °C reading. Neither demonstrates
-real thermal behavior. Requests and controller samples are written to
-`logs/requests.csv` and `logs/events.csv`.
+The response says `dry-run routed to q8`. This demo uses a simulated 40 °C reading
+and a generated response. Inspect `logs/requests.csv` for requests and
+`logs/events.csv` for the controller's temperature samples and decisions.
 
-To try HTTP forwarding, run each of these commands in its own terminal with the
-virtual environment activated. Stop the dry-run router first.
+<details>
+<summary>Try HTTP forwarding with two fake model servers</summary>
+
+Stop the dry-run router, then run each command in its own terminal with the
+virtual environment activated:
 
 ```bash
 python scripts/fake_llama_server.py --port 8081 --name q8
@@ -89,21 +74,23 @@ python scripts/fake_llama_server.py --port 8082 --name q4
 python -m thermal_guardian.router --config config.example.json --fake-monitor
 ```
 
-Repeat the same `curl` request; the reply now comes from the fake Q8 backend.
+Repeat the same `curl` request. The response now comes from the fake Q8 backend.
+
+</details>
 
 ## Run on a Raspberry Pi
 
 Install the package as above. You also need `vcgencmd`, a working `llama-server`
-build, and the two GGUF model files. The measured setup used Raspberry Pi OS
-Bookworm 64-bit; model weights are not included.
+build, and the Q8/Q4 GGUF model files. The measured setup used Raspberry Pi OS
+Bookworm 64-bit.
 
 ```bash
 cp m0.example.json m0.local.json
 cp config.example.json config.local.json
 ```
 
-Edit `m0.local.json` with your `llama-server` executable and model paths. Check that
-the ports match `q8_url` and `q4_url` in `config.local.json`, then start the backends:
+Set the executable and model paths in `m0.local.json`. Match its ports to `q8_url`
+and `q4_url` in `config.local.json`, then start both backends and the router:
 
 ```bash
 python -m thermal_guardian.m0 start --config m0.local.json
@@ -111,42 +98,64 @@ python -m thermal_guardian.m0 check --config m0.local.json
 python -m thermal_guardian.router --config config.local.json
 ```
 
-Use the same chat request from the local demo. Leave out `--fake-monitor` for real
-runs. If required telemetry is missing or malformed, the router returns HTTP 503
-instead of treating the device as cool. It resumes accepting requests when it can
-read telemetry again. The M2 experiment runner records a safety stop on telemetry
-failure.
+Use the same chat request from the demo. On the Pi, omit `--fake-monitor` to read
+real device telemetry. Missing or malformed readings produce HTTP 503; requests
+resume when telemetry recovers.
 
-The default switch points are 70 °C for Q8 → Q4 and 60 °C for Q4 → Q8, with at least
-ten seconds between switches. The gap between thresholds prevents repeated
-switches around a single temperature. These defaults differ from the thresholds
-used in the experiments; use the linked protocols to reproduce them.
+The default policy switches to Q4 at 70 °C and back to Q8 below 60 °C, with at
+least ten seconds between switches. These settings are configurable. The
+experiments used their own settings, recorded in the
+[M2](docs/m2_full_protocol.md) and [M3](docs/m3_thermal_stress_protocol.md) protocols.
+The [M0 checklist](docs/m0_checklist.md) covers model setup.
 
-The [M0 checklist](docs/m0_checklist.md) covers model setup. The
-[M2 protocol](docs/m2_full_protocol.md) covers comparisons and power measurements.
-The [M3 protocol](docs/m3_thermal_stress_protocol.md) includes the fan-off start
-gates and stop rules; its 82 °C cap belongs to the test harness, not the router.
+## Other experiments
 
-## Scope
+With active cooling, all five 30-minute runs per mode completed. Fixed Q4 gave
+the best median speed and energy per token: **11.27 tok/s, 0.677 J/token**, compared
+with the controller's **11.23 tok/s, 0.731 J/token**.
+[Fan-on comparison](docs/m2_full_fan_on_n5_results.md)
 
-The implemented API is `POST /v1/chat/completions` with a buffered response.
-Non-streaming chat is the tested path; streaming, other OpenAI endpoints,
+Predicting temperature from its recent slope made little difference once time
+spent on Q4 was matched: median peak temperatures differed by **0.6 °C**.
+The useful next question is when to spend time on each model.
+[Look-ahead experiments](docs/findings_lookahead.md)
+
+<details>
+<summary>Measurement details and remaining evaluation work</summary>
+
+- Fixed Q8's `get_throttled=0x80000` is the
+  [historical soft-temperature-limit flag](https://www.raspberrypi.com/documentation/computers/os.html#get_throttled).
+  The experiment runner stopped the load; a device shutdown was not observed.
+- Fan-off starts ranged from 55.4–58.7 °C. Two runs affected by suspected external
+  airflow were excluded and repeated, as recorded in the M3 protocol.
+- The controller's median peak of 77.9 °C exceeded its 71.1 °C switch point.
+  Switching is reactive, and the switch point is not a temperature cap. The
+  experiment runner separately enforces an 82 °C safety limit.
+- Fan-on energy figures use manual USB-meter readings. Those runs sent each
+  request after the preceding response, so faster modes completed more work.
+- All results use one device and one prompt workload. Answer-quality comparisons
+  and broader workloads remain to be tested.
+- Raw CSVs, meter photos, and local configs are not included. The
+  [evidence notes](docs/evidence_log.md) link recorded summaries and hashes of
+  local archives; recomputing every aggregate requires those archives.
+
+</details>
+
+## Implementation
+
+The API supports `POST /v1/chat/completions` with buffered, non-streaming
+responses. The server binds to localhost. Streaming, other OpenAI endpoints,
 authentication, and automatic retries to the other model are not implemented.
-The server binds to localhost by default.
 
-Both models stay loaded. Switching changes where the next request goes; it does
-not migrate an in-flight request or unload model weights. The controller uses
-temperature thresholds, with optional look-ahead and minimum Q4 residence time.
-It does not assess answer quality or guarantee a maximum CPU temperature.
+Start with [`router.py`](src/thermal_guardian/router.py) for request forwarding,
+[`controller.py`](src/thermal_guardian/controller.py) for the switching policy,
+and [`monitor.py`](src/thermal_guardian/monitor.py) for Pi telemetry.
 
-These results cover one device, one prompt workload, and the cooling conditions
-above. Raw CSVs, meter photos, and local configs are excluded from this repository.
-The [evidence notes](docs/evidence_log.md) and linked experiment reports document
-the recorded results; some reports include hashes for locally held archives. The
-public repository alone is not enough to recompute every aggregate.
+Run the tests with `python -m pytest`. GitHub Actions runs the same suite on
+Python 3.11.
 
-Related project: [Pose Guardian](https://github.com/ryokotaka/pose-guardian), which
-switches pose-estimation models under CPU and resource pressure.
+[Pose Guardian](https://github.com/ryokotaka/pose-guardian) applies model switching
+to live pose estimation on the Pi.
 
 ## License
 
