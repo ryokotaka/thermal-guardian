@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 270" role="img" aria-labelledby="title desc">
+<title id="title">One chat endpoint, two models, temperature-aware routing</title>
+<desc id="desc">Thermal Guardian starts on Q8, switches to Q4 at 70 degrees Celsius, and returns at 60 degrees or below using the default policy. Both backends remain loaded.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#7c92ad"/></marker></defs>
+<rect width="1040" height="270" rx="12" fill="#0b1220"/>
+<g font-family="Arial,Helvetica,sans-serif">
+<text x="36" y="38" fill="#8fa6bf" font-size="15" letter-spacing="2">THERMAL GUARDIAN / DEFAULT ROUTING POLICY</text>
+<rect x="36" y="76" width="238" height="116" rx="7" fill="#152238" stroke="#32465f"/>
+<text x="60" y="111" fill="#f1f5f9" font-size="22" font-weight="700">One chat endpoint</text>
+<text x="60" y="143" fill="#9fb1c6" font-size="16">Your application stays</text>
+<text x="60" y="166" fill="#9fb1c6" font-size="16">connected to the same URL.</text>
+<path d="M276 134H348" stroke="#7c92ad" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="364" y="76" width="266" height="116" rx="7" fill="#122b33" stroke="#397886"/>
+<text x="388" y="112" fill="#7ee1d1" font-size="29" font-weight="700">Q8</text>
+<text x="388" y="145" fill="#e2edf3" font-size="18">Start here. Return when cool.</text>
+<text x="388" y="172" fill="#9fb1c6" font-size="15">Higher weight precision</text>
+<rect x="736" y="76" width="268" height="116" rx="7" fill="#332519" stroke="#926639"/>
+<text x="760" y="112" fill="#fdba74" font-size="29" font-weight="700">Q4</text>
+<text x="760" y="145" fill="#e2edf3" font-size="18">Switch here as heat rises.</text>
+<text x="760" y="172" fill="#9fb1c6" font-size="15">Lighter model</text>
+<path d="M632 105H720" stroke="#7c92ad" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="665" y="91" fill="#fdba74" font-size="15">≥70°C</text>
+<path d="M734 162H646" stroke="#7c92ad" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="666" y="188" fill="#7ee1d1" font-size="15">≤60°C</text>
+<text x="36" y="237" fill="#a4b7ca" font-size="17">Both models stay loaded. A switch routes the next request to the other backend.</text>
+</g></svg>

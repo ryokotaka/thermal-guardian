@@ -1,14 +1,14 @@
 # Thermal Guardian
 
-Thermal Guardian switches a Raspberry Pi 5's local LLM between higher-precision
-Q8 and lighter Q4 models as the CPU heats up and cools down. Applications use one
-chat endpoint while the router chooses which model serves the next request.
+**Switch between Q8 and Q4 without changing your chat endpoint.**
 
-**In a 20-minute fan-off experiment, the controller served all 200 requests in
-three out of three runs. Fixed Q8 reached the test's safety stop in every run,
-after a median of 100 requests.**
+[Try locally](#try-it-locally) · [Pi setup](#run-on-a-raspberry-pi) · [Experiment](docs/m3_thermal_stress_protocol.md) · [Apache 2.0](LICENSE)
 
-![Fan-off experiment: fixed Q8 reached the test safety stop; the controller and fixed Q4 completed all 200 requests](docs/assets/m3_thermal_continuity.svg)
+Thermal Guardian routes a Raspberry Pi 5's local LLM requests between Q8 and the lighter Q4 model, using CPU temperature to choose the next backend.
+
+![Default routing policy: start on Q8, switch to Q4 at 70 degrees, return at 60 degrees or below](docs/assets/routing.svg)
+
+**200/200 requests completed in all three fan-off runs.** Fixed Q8 reached the test's safety stop in all three, after a median of 100 requests. Fixed Q4 also completed all 200. The controller returned to Q8 during cooler periods.
 
 ## What switching changes
 
@@ -32,6 +32,13 @@ heatsink attached and airflow blocked. Each mode ran three times:
 The controller matched fixed Q4's completion rate while returning to Q8 during
 cooler periods. It spent about 78% of the time on Q4. These results measure
 service continuity; answer quality is a separate comparison still to make.
+
+<details>
+<summary>View the temperature and completion plots</summary>
+
+![Fan-off experiment: fixed Q8 reached the safety stop; the controller and fixed Q4 completed all 200 requests](docs/assets/m3_thermal_continuity.svg)
+
+</details>
 
 [Experiment conditions and results](docs/m3_thermal_stress_protocol.md)
 
@@ -80,8 +87,6 @@ Repeat the same `curl` request. The response now comes from the fake Q8 backend.
 
 ## Run on a Raspberry Pi
 
-To try switching under load first, the [SwarmGo integration demo](https://github.com/ryokotaka/swarmgo-thermal-demo) runs three workers through this router with one command. It checks Q8 → Q4 → Q8 transitions using simulated temperatures and model replies.
-
 Install the package as above. You also need `vcgencmd`, a working `llama-server`
 build, and the Q8/Q4 GGUF model files. The measured setup used Raspberry Pi OS
 Bookworm 64-bit.
@@ -104,7 +109,7 @@ Use the same chat request from the demo. On the Pi, omit `--fake-monitor` to rea
 real device telemetry. Missing or malformed readings produce HTTP 503; requests
 resume when telemetry recovers.
 
-The default policy switches to Q4 at 70 °C and back to Q8 below 60 °C, with at
+The default policy switches to Q4 at 70 °C and back to Q8 at 60 °C or below, with at
 least ten seconds between switches. These settings are configurable. The
 experiments used their own settings, recorded in the
 [M2](docs/m2_full_protocol.md) and [M3](docs/m3_thermal_stress_protocol.md) protocols.
