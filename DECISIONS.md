@@ -1,15 +1,62 @@
 # Decisions
 
-> **What this is:** a dated log of project decisions the author approved (names,
-> model choice, protocol settings). **Who it's for:** anyone tracing why the
-> project is set up the way it is. **Bottom line:** each entry is a recorded
-> decision, not a performance claim.
+Model choices, test settings, and the results that informed them.
 
-2026-06-13 | Repository name: edge-llm-guardian | Selected before Phase 1 implementation.
-2026-06-14 | M0 model candidate selected | Selected Qwen/Qwen2.5-1.5B-Instruct-GGUF for M0 bring-up, using qwen2.5-1.5b-instruct-q8_0.gguf and qwen2.5-1.5b-instruct-q4_k_m.gguf. License verified as Apache-2.0 on the Hugging Face model card. This is not an M0 pass or performance claim.
-2026-06-14 | M1 no-fan switch evidence recorded | With active cooling disconnected, the Pi 5 run recorded one switch_to_q4 event at 70.3 C and analyze-events returned ok=true with oscillation_detected=false. The run was safety-stopped at 81.8 C after get_throttled became 0x80000, so this is switch evidence only, not a no-fan stability or performance claim. Evidence path: data/m1/2026-06-14/nofan/.
-2026-06-14 | USB power meter identified | The USB power meter is a YOJOCK KWS-2303C USB C Tester. The display can show V, A, W, mAh, mWh, elapsed time, and max readings. This records measurement equipment only; it is not a J/token or energy-efficiency claim.
-2026-06-14 | M2-lite fan-on N=1 recorded | Recorded short fan-on M2-lite runs for q4_fixed, controller, and q8_fixed with manual USB meter mWh readings. All runs had failed_count=0, safety_stop=false, and throttle_seen=false. Controller stayed on Q8 because the run did not reach the 70 C switch threshold. This is smoke evidence only, not a performance, energy-efficiency, or long-run stability claim. Evidence path: data/m2/2026-06-14/fan_on/.
-2026-06-14 | M2 full fan-on protocol fixed | The first full M2 series will use fan_on only, 1800 seconds per run, N=5 per condition, median+IQR reporting, and manual USB meter mWh readings. The controller condition will use tuned fan-on thresholds temp_up_c=63.0 and temp_down_c=59.0 because default 70/60 did not switch during M2-lite. This is a protocol decision only, not an evaluation result.
-2026-06-16 | M2 full fan-on N=5 recorded | Completed q8_fixed, q4_fixed, and controller fan-on runs at 1800 seconds x N=5 on Raspberry Pi 5. All selected runs had throttle_seen=false and safety_stop=false. Every selected controller run recorded one switch_to_q4 and one switch_to_q8. In this workload, fixed Q4 was best on latency, token/s, and J/token; controller improved over fixed Q8 but did not outperform fixed Q4. Evidence path: data/m2/2026-06-15/fan_on_full/. Archive SHA-256: a0cf7239e1aa0c8c685510a6b716d15d111b0509d466f11321181a6ea11d1511.
-2026-06-16 | Renamed to Thermal Guardian (Edge Guardian series) | Renamed edge-llm-guardian -> Thermal Guardian (package thermal_guardian, dist thermal-guardian) to disambiguate from the sibling vision repo edge-inference-guardian -> Pose Guardian, and to avoid the "llm-guardian = LLM safety guardrail" connotation since output safety is explicitly not evaluated. Both framed as the Edge Guardian series: resource/thermal-aware adaptive model switching on Raspberry Pi 5. Public GitHub repo and local folder rename pending (manual).
+## 2026-06-13 — Initial repository name
+
+The project started as `edge-llm-guardian` before the first implementation.
+
+## 2026-06-14 — Models and power measurement
+
+Selected `Qwen/Qwen2.5-1.5B-Instruct-GGUF` for bring-up, using
+`qwen2.5-1.5b-instruct-q8_0.gguf` and `qwen2.5-1.5b-instruct-q4_k_m.gguf`.
+The model card listed Apache-2.0 at the time of selection.
+
+The power meter is a YOJOCK KWS-2303C USB C Tester. It displays voltage,
+current, power, charge, energy, elapsed time, and maximum readings. Later
+energy comparisons use its manually recorded mWh readings.
+
+## 2026-06-14 — First switch without active cooling
+
+The Pi switched to Q4 at 70.3 °C. The event check reported no oscillation.
+The experiment then reached its safety stop at 81.8 °C after
+`get_throttled` became `0x80000`. This confirmed the switch worked; the
+run did not establish sustained operation without a fan.
+
+Recorded data: `data/m1/2026-06-14/nofan/` in the local archive.
+
+## 2026-06-14 — Short fan-on runs
+
+The Q8, Q4, and controller smoke tests finished without failed requests,
+safety stops, or observed throttle flags. The controller stayed on Q8:
+the Pi never reached the default 70 °C switch threshold.
+
+Recorded data: `data/m2/2026-06-14/fan_on/` in the local archive.
+
+## 2026-06-14 — Full fan-on protocol
+
+Set the full comparison to 30 minutes per run, five runs per condition,
+with median and IQR reporting. Use manual USB-meter energy readings.
+Set controller thresholds to 63 °C and 59 °C because the default 70/60 °C
+policy did not switch during the short fan-on tests.
+
+## 2026-06-16 — Full fan-on results
+
+Completed five 30-minute runs for each mode. All selected runs finished
+without a safety stop or an observed throttle flag. Each controller run
+switched to Q4 once and returned to Q8 once.
+
+Fixed Q4 had the best latency, token rate, and energy per token for this
+workload. The controller improved on fixed Q8, but did not outperform
+fixed Q4.
+
+Recorded data: `data/m2/2026-06-15/fan_on_full/` in the local archive.
+Archive SHA-256: `a0cf7239e1aa0c8c685510a6b716d15d111b0509d466f11321181a6ea11d1511`.
+
+## 2026-06-16 — Thermal Guardian name
+
+Renamed the project to Thermal Guardian, with package `thermal_guardian`
+and distribution `thermal-guardian`. The name describes temperature-based
+model routing and avoids confusing it with an LLM output-safety guardrail.
+The related vision project became Pose Guardian. The GitHub repositories
+now use these names.

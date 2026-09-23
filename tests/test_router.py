@@ -1,12 +1,18 @@
 import json
+from http.server import ThreadingHTTPServer
+import threading
+
+import pytest
+import requests
 
 from thermal_guardian.config import RouterConfig
 from thermal_guardian.controller import ControllerConfig, RouteTarget, ThermalController
 from thermal_guardian.logger import CsvLogger
-from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot
+from thermal_guardian.monitor import FakeMonitor, MonitorSnapshot, MonitorUnavailableError
 from thermal_guardian.router import (
     PROMPT_ID_HEADER,
     RouterRuntime,
+    RoutingHandler,
     _backend_url,
     _config_with_cli_overrides,
     _extract_prompt_id,
@@ -40,6 +46,7 @@ def test_backend_url_uses_target() -> None:
 def test_cli_overrides_min_residence_without_mutating_config() -> None:
     class Args:
         dry_run = True
+        fake_monitor = True
         min_residence_sec = 60.0
 
     original = RouterConfig(min_residence_sec=0.0, dry_run=False)
@@ -50,6 +57,8 @@ def test_cli_overrides_min_residence_without_mutating_config() -> None:
     assert original.dry_run is False
     assert updated.min_residence_sec == 60.0
     assert updated.dry_run is True
+    assert original.fake_monitor is False
+    assert updated.fake_monitor is True
 
 
 def test_dry_run_runtime_routes_and_logs(tmp_path) -> None:
@@ -172,3 +181,81 @@ def test_runtime_logs_prompt_id_header_without_mutating_body(tmp_path) -> None:
     assert session.calls[0]["data"] == body
     assert "prompt_id" not in json.loads(session.calls[0]["data"].decode("utf-8"))
     assert "header-p-forward" in (tmp_path / "requests.csv").read_text(encoding="utf-8")
+
+
+def test_fake_monitor_is_an_explicit_local_option(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("thermal_guardian.monitor._run_vcgencmd", lambda *args: None)
+    real_runtime = RouterRuntime(RouterConfig(log_dir=str(tmp_path / "real"), dry_run=True))
+    with pytest.raises(MonitorUnavailableError):
+        real_runtime.handle_chat_completion(b'{"messages": []}')
+
+    demo_runtime = RouterRuntime(
+        RouterConfig(log_dir=str(tmp_path / "demo"), dry_run=True, fake_monitor=True)
+    )
+    assert demo_runtime.handle_chat_completion(b'{"messages": []}').status_code == 200
+
+
+def test_telemetry_failure_invalidates_cached_route_and_returns_503(tmp_path) -> None:
+    class RecoverableMonitor:
+        failed = False
+
+        def snapshot(self):
+            if self.failed:
+                raise MonitorUnavailableError("temperature unavailable")
+            return MonitorSnapshot(1.0, 40.0, 1_500_000_000, "0x0")
+
+    monitor = RecoverableMonitor()
+    runtime = RouterRuntime(
+        RouterConfig(log_dir=str(tmp_path), dry_run=True, monitor_interval_sec=3600),
+        monitor=monitor,
+    )
+    runtime.sample_controller()
+    monitor.failed = True
+    with pytest.raises(MonitorUnavailableError):
+        runtime.sample_controller()
+
+    class Handler(RoutingHandler):
+        pass
+
+    Handler.runtime = runtime
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_port}/v1/chat/completions"
+        response = requests.post(url, json={"messages": []}, timeout=5)
+        assert response.status_code == 503
+        assert "temperature unavailable" in response.json()["error"]
+        assert len((tmp_path / "requests.csv").read_text().splitlines()) == 1
+
+        monitor.failed = False
+        assert requests.post(url, json={"messages": []}, timeout=5).status_code == 200
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_background_monitor_retries_after_telemetry_failure(tmp_path) -> None:
+    recovered = threading.Event()
+
+    class RecoveringMonitor:
+        calls = 0
+
+        def snapshot(self):
+            self.calls += 1
+            if self.calls == 1:
+                raise MonitorUnavailableError("temperature unavailable")
+            recovered.set()
+            return MonitorSnapshot(1.0, 40.0, 1_500_000_000, "0x0")
+
+    runtime = RouterRuntime(
+        RouterConfig(log_dir=str(tmp_path), dry_run=True, monitor_interval_sec=0.01),
+        monitor=RecoveringMonitor(),
+    )
+    runtime.start_background_monitor()
+    try:
+        assert recovered.wait(timeout=2), "background sampling stopped after the failed read"
+        assert runtime.current_decision().target is RouteTarget.Q8
+    finally:
+        runtime.stop_background_monitor()

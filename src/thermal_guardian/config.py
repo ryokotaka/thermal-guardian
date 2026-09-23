@@ -27,8 +27,11 @@ class RouterConfig:
     request_timeout_sec: float = 120.0
     log_dir: str = "logs"
     dry_run: bool = False
+    fake_monitor: bool = False
 
     def __post_init__(self) -> None:
+        if not isinstance(self.fake_monitor, bool):
+            raise ValueError("fake_monitor must be a boolean")
         if self.listen_port <= 0:
             raise ValueError("listen_port must be positive")
         if self.monitor_interval_sec <= 0:

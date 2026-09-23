@@ -3,6 +3,12 @@ import pytest
 from thermal_guardian.config import RouterConfig
 
 
+@pytest.mark.parametrize("value", ["false", "true", 0, 1, None])
+def test_fake_monitor_requires_explicit_boolean(value) -> None:
+    with pytest.raises(ValueError, match="fake_monitor must be a boolean"):
+        RouterConfig.from_dict({"fake_monitor": value})
+
+
 def test_config_rejects_unknown_keys() -> None:
     with pytest.raises(ValueError, match="unknown config keys"):
         RouterConfig.from_dict({"unexpected": True})

@@ -89,7 +89,8 @@ Interpretation, kept deliberately narrow:
 - The controller peaked above its 71.1 C ceiling in all runs, so the next
   engineering question is more thermal margin (switch earlier or lower the
   ceiling), not fewer switches: with independent requests and both models resident,
-  frequent return to Q8 is cheap and maximizes quality.
+  returning to Q8 more often changes the model mix without reloading weights.
+  Its effect on answer quality was not measured.
 
 Evidence package on the Pi:
 
